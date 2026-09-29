@@ -1,5 +1,6 @@
 #pragma once
 #include <Eigen/Dense>
+#include <vector>
 
 enum class JointType
 {
@@ -32,8 +33,6 @@ class DHMatrix
         void computeMatrix();
         const Eigen::Matrix4d& getMatrix() const;
 
-
-
-
-
 };
+
+Eigen::Matrix4d ForwardKinematics(const std::vector<DHMatrix>& DHList);

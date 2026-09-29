@@ -14,8 +14,16 @@ add_library(kinematics
   src/forward_kinematics.cpp
 )
 
+add_executable(test_fk
+  src/test_fk.cpp
+)
+
 target_include_directories(kinematics PUBLIC
   include
+)
+
+target_link_libraries(test_fk
+  kinematics
 )
 
 target_link_libraries(kinematics
