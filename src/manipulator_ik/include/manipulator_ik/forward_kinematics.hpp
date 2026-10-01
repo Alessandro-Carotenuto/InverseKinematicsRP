@@ -23,16 +23,37 @@ class DHMatrix
     private:
         DHParameters dhparams;
         Eigen::Matrix4d dhmatrix;
-        
+    
 
     public:
         //CONSTRUCTOR AND DESTRUCTOR
         DHMatrix(DHParameters _dhpar);
         ~DHMatrix();
 
+        
+        void setAlpha(double alpha);
+        void setA(double a);
+        void setTheta(double theta);
+        void setD(double d);
+
+        Eigen::Matrix4d computeIfAlpha(double alpha) const;
+        Eigen::Matrix4d computeIfA(double a) const;
+        Eigen::Matrix4d computeIfTheta(double theta) const;
+        Eigen::Matrix4d computeIfD(double d) const;
+
+
         void computeMatrix();
+
         const Eigen::Matrix4d& getMatrix() const;
+        
+        double getAlpha() const;
+        double getA() const;
+        double getTheta() const;
+        double getD() const;
+        JointType getJointType() const;
 
 };
 
 Eigen::Matrix4d ForwardKinematics(const std::vector<DHMatrix>& DHList);
+
+Eigen::MatrixXd Jacobian_Linear(std::vector<DHMatrix> DHList, const double eps = 1e-6);

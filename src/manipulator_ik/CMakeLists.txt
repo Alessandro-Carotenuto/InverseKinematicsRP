@@ -18,11 +18,19 @@ add_executable(test_fk
   src/test_fk.cpp
 )
 
+add_executable(test_jacobian
+  src/test_jacobian.cpp
+)
+
 target_include_directories(kinematics PUBLIC
   include
 )
 
 target_link_libraries(test_fk
+  kinematics
+)
+
+target_link_libraries(test_jacobian
   kinematics
 )
 
