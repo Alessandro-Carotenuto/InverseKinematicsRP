@@ -4,9 +4,7 @@
 
 DHMatrix::DHMatrix(DHParameters _dhpar) : dhparams(_dhpar)
 {
-
     computeMatrix();
-    
 }
 
 DHMatrix::~DHMatrix()
@@ -94,38 +92,6 @@ double DHMatrix::getD() const
 }
 
 
-Eigen::Matrix4d DHMatrix::computeIfAlpha(double alpha) const
-{
-    DHParameters temp_params = dhparams;
-    temp_params.alpha = alpha;
-    DHMatrix temp_link(temp_params);
-    return temp_link.getMatrix();
-}
-
-Eigen::Matrix4d DHMatrix::computeIfA(double a) const
-{
-    DHParameters temp_params = dhparams;
-    temp_params.a = a;
-    DHMatrix temp_link(temp_params);
-    return temp_link.getMatrix();
-}
-
-Eigen::Matrix4d DHMatrix::computeIfTheta(double theta) const
-{
-    DHParameters temp_params = dhparams;
-    temp_params.theta = theta;
-    DHMatrix temp_link(temp_params);
-    return temp_link.getMatrix();
-}
-
-Eigen::Matrix4d DHMatrix::computeIfD(double d) const
-{
-    DHParameters temp_params = dhparams;
-    temp_params.d = d;
-    DHMatrix temp_link(temp_params);
-    return temp_link.getMatrix();
-}
-
 
 Eigen::Matrix4d ForwardKinematics(const std::vector<DHMatrix>& DHList)
 {
@@ -177,3 +143,4 @@ Eigen::MatrixXd Jacobian_Linear(std::vector<DHMatrix> DHList, const double eps)
 
     return Jacobian;
 }
+

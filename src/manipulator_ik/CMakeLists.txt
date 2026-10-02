@@ -12,6 +12,7 @@ find_package(Eigen3 REQUIRED)
 
 add_library(kinematics
   src/forward_kinematics.cpp
+  src/inverse_kinematics.cpp
 )
 
 add_executable(test_fk
@@ -22,21 +23,17 @@ add_executable(test_jacobian
   src/test_jacobian.cpp
 )
 
-target_include_directories(kinematics PUBLIC
-  include
+add_executable(test_pseudoinverse
+  src/test_pseudoinverse.cpp
 )
 
-target_link_libraries(test_fk
-  kinematics
-)
+target_include_directories(kinematics PUBLIC include)
 
-target_link_libraries(test_jacobian
-  kinematics
-)
+target_link_libraries(test_fk kinematics)
+target_link_libraries(test_jacobian kinematics)
+target_link_libraries(test_pseudoinverse kinematics)
 
-target_link_libraries(kinematics
-  Eigen3::Eigen
-)
+target_link_libraries(kinematics Eigen3::Eigen)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

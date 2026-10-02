@@ -36,12 +36,6 @@ class DHMatrix
         void setTheta(double theta);
         void setD(double d);
 
-        Eigen::Matrix4d computeIfAlpha(double alpha) const;
-        Eigen::Matrix4d computeIfA(double a) const;
-        Eigen::Matrix4d computeIfTheta(double theta) const;
-        Eigen::Matrix4d computeIfD(double d) const;
-
-
         void computeMatrix();
 
         const Eigen::Matrix4d& getMatrix() const;
