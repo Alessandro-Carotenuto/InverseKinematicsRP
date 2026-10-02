@@ -27,11 +27,16 @@ add_executable(test_pseudoinverse
   src/test_pseudoinverse.cpp
 )
 
+add_executable(test_inverse_kinematics
+  src/test_inverse_kinematics.cpp
+)
+
 target_include_directories(kinematics PUBLIC include)
 
 target_link_libraries(test_fk kinematics)
 target_link_libraries(test_jacobian kinematics)
 target_link_libraries(test_pseudoinverse kinematics)
+target_link_libraries(test_inverse_kinematics kinematics)
 
 target_link_libraries(kinematics Eigen3::Eigen)
 
