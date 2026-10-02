@@ -8,26 +8,30 @@ enum class JointType
     Prismatic
 };
 
-struct DHParameters
+struct JointParameters
 {
     double alpha;
     double a;
     double theta;
     double d;
+    
     JointType jtype;
+    double joint_min;
+    double joint_max;
+    bool isLimited;
 };
 
 
 class DHMatrix
 {
     private:
-        DHParameters dhparams;
+        JointParameters jointparams;
         Eigen::Matrix4d dhmatrix;
     
 
     public:
         //CONSTRUCTOR AND DESTRUCTOR
-        DHMatrix(DHParameters _dhpar);
+        DHMatrix(JointParameters joint_parameters);
         ~DHMatrix();
 
         
@@ -44,7 +48,11 @@ class DHMatrix
         double getA() const;
         double getTheta() const;
         double getD() const;
+        
         JointType getJointType() const;
+        bool isLimited() const;
+        double getJointMin() const;
+        double getJointMax() const;
 
 };
 

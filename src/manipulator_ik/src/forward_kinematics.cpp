@@ -2,7 +2,7 @@
 #include <cmath>
 
 
-DHMatrix::DHMatrix(DHParameters _dhpar) : dhparams(_dhpar)
+DHMatrix::DHMatrix(JointParameters joint_parameters) : jointparams(joint_parameters)
 {
     computeMatrix();
 }
@@ -14,20 +14,20 @@ DHMatrix::~DHMatrix()
 
 void DHMatrix::computeMatrix()
 {
-    dhmatrix(0,0) =  std::cos(dhparams.theta);
-    dhmatrix(0,1) = -std::cos(dhparams.alpha) * std::sin(dhparams.theta);
-    dhmatrix(0,2) =  std::sin(dhparams.alpha) * std::sin(dhparams.theta);
-    dhmatrix(0,3) =  dhparams.a * std::cos(dhparams.theta);
+    dhmatrix(0,0) =  std::cos(jointparams.theta);
+    dhmatrix(0,1) = -std::cos(jointparams.alpha) * std::sin(jointparams.theta);
+    dhmatrix(0,2) =  std::sin(jointparams.alpha) * std::sin(jointparams.theta);
+    dhmatrix(0,3) =  jointparams.a * std::cos(jointparams.theta);
 
-    dhmatrix(1,0) =  std::sin(dhparams.theta);
-    dhmatrix(1,1) =  std::cos(dhparams.alpha) * std::cos(dhparams.theta);
-    dhmatrix(1,2) = -std::sin(dhparams.alpha) * std::cos(dhparams.theta);
-    dhmatrix(1,3) =  dhparams.a * std::sin(dhparams.theta);
+    dhmatrix(1,0) =  std::sin(jointparams.theta);
+    dhmatrix(1,1) =  std::cos(jointparams.alpha) * std::cos(jointparams.theta);
+    dhmatrix(1,2) = -std::sin(jointparams.alpha) * std::cos(jointparams.theta);
+    dhmatrix(1,3) =  jointparams.a * std::sin(jointparams.theta);
 
     dhmatrix(2,0) =  0.0;
-    dhmatrix(2,1) =  std::sin(dhparams.alpha);
-    dhmatrix(2,2) =  std::cos(dhparams.alpha);
-    dhmatrix(2,3) =  dhparams.d;
+    dhmatrix(2,1) =  std::sin(jointparams.alpha);
+    dhmatrix(2,2) =  std::cos(jointparams.alpha);
+    dhmatrix(2,3) =  jointparams.d;
 
     dhmatrix(3,0) =  0.0;
     dhmatrix(3,1) =  0.0;
@@ -43,52 +43,67 @@ const Eigen::Matrix4d& DHMatrix::getMatrix() const
 
 JointType DHMatrix::getJointType() const
 {
-    return dhparams.jtype;
+    return jointparams.jtype;
+}
+
+bool DHMatrix::isLimited() const
+{
+    return jointparams.isLimited;
+}
+
+double DHMatrix::getJointMin() const
+{
+    return jointparams.joint_min;
+}
+
+double DHMatrix::getJointMax() const
+{
+    return jointparams.joint_max;
 }
 
 
 void DHMatrix::setAlpha(double alpha)
 {
-    dhparams.alpha = alpha;
+    jointparams.alpha = alpha;
     computeMatrix();
 }
 
 void DHMatrix::setA(double a)
 {
-    dhparams.a = a;
+    jointparams.a = a;
     computeMatrix();
 }
 
 void DHMatrix::setTheta(double theta)
 {
-    dhparams.theta = theta;
+    jointparams.theta = theta;
     computeMatrix();
 }
 
 void DHMatrix::setD(double d)
 {
-    dhparams.d = d;
+    jointparams.d = d;
     computeMatrix();
 }
 
 double DHMatrix::getAlpha() const
 {
-    return dhparams.alpha;
+    return jointparams.alpha;
 }
 
 double DHMatrix::getA() const
 {
-    return dhparams.a;
+    return jointparams.a;
 }
 
 double DHMatrix::getTheta() const
 {
-    return dhparams.theta;
+    return jointparams.theta;
 }
 
 double DHMatrix::getD() const
 {
-    return dhparams.d;
+    return jointparams.d;
 }
 
 
@@ -143,4 +158,5 @@ Eigen::MatrixXd Jacobian_Linear(std::vector<DHMatrix> DHList, const double eps)
 
     return Jacobian;
 }
+
 

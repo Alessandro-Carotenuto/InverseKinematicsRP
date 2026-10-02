@@ -7,7 +7,7 @@ int main()
     std::cout << "=== NUMERICAL JACOBIAN TESTS ===\n\n";
 
     {
-        DHParameters params;
+        JointParameters params;
         params.alpha = 0.0;
         params.a = 1.0;
         params.theta = 0.0;
@@ -25,14 +25,14 @@ int main()
     }
 
     {
-        DHParameters p1;
+        JointParameters p1;
         p1.alpha = 0.0;
         p1.a = 1.0;
         p1.theta = 0.0;
         p1.d = 0.0;
         p1.jtype = JointType::Revolute;
 
-        DHParameters p2;
+        JointParameters p2;
         p2.alpha = 0.0;
         p2.a = 1.0;
         p2.theta = 0.0;
