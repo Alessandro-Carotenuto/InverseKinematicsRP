@@ -13,6 +13,8 @@ find_package(Eigen3 REQUIRED)
 add_library(kinematics
   src/forward_kinematics.cpp
   src/inverse_kinematics.cpp
+  src/kinematic_model.cpp
+  src/dh_model.cpp
 )
 
 add_executable(test_fk
@@ -31,14 +33,24 @@ add_executable(test_inverse_kinematics
   src/test_inverse_kinematics.cpp
 )
 
+add_executable(test_kinematic_model
+  src/test_kinematic_model.cpp
+)
+
 target_include_directories(kinematics PUBLIC include)
 
 target_link_libraries(test_fk kinematics)
 target_link_libraries(test_jacobian kinematics)
 target_link_libraries(test_pseudoinverse kinematics)
 target_link_libraries(test_inverse_kinematics kinematics)
+target_link_libraries(test_kinematic_model kinematics)
 
 target_link_libraries(kinematics Eigen3::Eigen)
+
+install(
+  DIRECTORY urdf
+  DESTINATION share/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
