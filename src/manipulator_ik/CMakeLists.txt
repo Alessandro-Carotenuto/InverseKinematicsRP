@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(urdfdom REQUIRED)
 
 add_library(kinematics
   src/forward_kinematics.cpp
@@ -37,6 +38,10 @@ add_executable(test_kinematic_model
   src/test_kinematic_model.cpp
 )
 
+add_executable(test_urdf_loading
+  src/test_urdf_loading.cpp
+)
+
 target_include_directories(kinematics PUBLIC include)
 
 target_link_libraries(test_fk kinematics)
@@ -44,6 +49,7 @@ target_link_libraries(test_jacobian kinematics)
 target_link_libraries(test_pseudoinverse kinematics)
 target_link_libraries(test_inverse_kinematics kinematics)
 target_link_libraries(test_kinematic_model kinematics)
+target_link_libraries(test_urdf_loading urdfdom::urdf_parser)
 
 target_link_libraries(kinematics Eigen3::Eigen)
 
