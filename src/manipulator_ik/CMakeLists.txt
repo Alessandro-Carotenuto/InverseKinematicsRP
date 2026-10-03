@@ -16,6 +16,7 @@ add_library(kinematics
   src/inverse_kinematics.cpp
   src/kinematic_model.cpp
   src/dh_model.cpp
+  src/urdf_model.cpp
 )
 
 add_executable(test_fk
@@ -42,6 +43,10 @@ add_executable(test_urdf_loading
   src/test_urdf_loading.cpp
 )
 
+add_executable(test_urdf_model
+  src/test_urdf_model.cpp
+)
+
 target_include_directories(kinematics PUBLIC include)
 
 target_link_libraries(test_fk kinematics)
@@ -50,8 +55,12 @@ target_link_libraries(test_pseudoinverse kinematics)
 target_link_libraries(test_inverse_kinematics kinematics)
 target_link_libraries(test_kinematic_model kinematics)
 target_link_libraries(test_urdf_loading urdfdom::urdf_parser)
+target_link_libraries(test_urdf_model kinematics)
 
-target_link_libraries(kinematics Eigen3::Eigen)
+target_link_libraries(kinematics
+  PUBLIC Eigen3::Eigen
+  PRIVATE urdfdom::urdf_parser
+)
 
 install(
   DIRECTORY urdf

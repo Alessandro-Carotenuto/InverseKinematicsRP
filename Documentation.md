@@ -41,7 +41,7 @@ isJointLimited(index)
                  KinematicModel
                  /            \
             DHModel          URDFModel
-          implementato       pianificato
+          implementato      implementato
 ```
 
 Il Jacobiano generico riceve `KinematicModel`. Non dipende più dalla rappresentazione DH.
@@ -54,32 +54,36 @@ Il Jacobiano generico riceve `KinematicModel`. Non dipende più dalla rappresent
 urdf::ModelInterfaceSharedPtr model = urdf::parseURDFFile(path);
 ```
 
-Il test attuale verifica entrambi gli URDF: nome, root, link, joint, tipi, assi, origini e limiti.
+Il test di caricamento verifica entrambi gli URDF: nome, root, link, joint, tipi, assi, origini e limiti.
 
 ## Scelte di design
 
 - `urdfdom` analizza l'XML. Il progetto non implementa un parser.
 - Il progetto implementa FK, Jacobiano e IK. Non usa KDL per questi calcoli.
-- `DHModel` rimane disponibile anche dopo l'aggiunta di URDF.
+- `DHModel` rimane disponibile insieme a `URDFModel`.
 - `KinematicModel` permette agli algoritmi di ignorare la rappresentazione interna.
 - Codice cinematico indipendente dal futuro nodo ROS 2.
 - `robot_state_publisher`, TF e RViz serviranno solo per trasformazioni ROS e visualizzazione.
 
-## Prossima implementazione: `URDFModel`
+## `URDFModel` e Forward Kinematics
 
-`URDFModel` caricherà una catena tra base ed end-effector.
+Il modello viene costruito indicando file, base ed end-effector:
 
-Ogni joint interno conserverà:
+```cpp
+URDFModel::FromFile(path, "base_link", "tool0");
+```
+
+La catena viene ricavata risalendo da `tool0` a `base_link`, poi invertita.
+
+Ogni joint interno conserva:
 
 - tipo: revolute, prismatic o fixed;
 - trasformazione `origin`;
-- `axis`;
+- `axis` normalizzato;
 - limiti;
 - indice dentro `q`, oppure `-1` per joint fixed.
 
-La catena verrà ricavata risalendo da `tool0` a `base_link`, poi invertita.
-
-La FK userà:
+La FK usa:
 
 ```text
 T = T × Origin × JointMotion(q)
@@ -89,16 +93,18 @@ T = T × Origin × JointMotion(q)
 - prismatic: traslazione lungo `axis`;
 - fixed: identità, senza elemento in `q`.
 
+Il test verifica metadati, configurazione zero, entrambi i joint revolute, joint prismatic e dimensione di `q`.
+
 Il Jacobiano generico funzionerà senza un secondo algoritmo.
 
-## Flusso finale previsto
+## Flusso attuale
 
 ```text
 DHModel oppure URDFModel
           ↓
     KinematicModel
           ↓
-FK / Jacobiano / Inverse Kinematics
-          ↓
-          q
+   FK e Jacobiano
 ```
+
+La Inverse Kinematics verrà collegata a `KinematicModel` in uno step successivo.
