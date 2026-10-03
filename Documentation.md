@@ -23,6 +23,8 @@ Sono presenti due descrizioni dello stesso manipolatore RRP:
 - `manipulator_rrp.urdf`: sola cinematica;
 - `manipulator_rrp_visual.urdf`: stessa cinematica con geometrie e materiali.
 
+Il test di equivalenza conferma che producono stessi DOF, limiti e FK.
+
 ### 4. Interfaccia comune
 
 `KinematicModel` definisce:

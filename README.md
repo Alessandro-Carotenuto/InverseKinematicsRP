@@ -16,7 +16,7 @@ La struttura dei modelli cinematici e le scelte progettuali sono descritte in [D
 - [x] 8. `DHModel` e Jacobiano numerico indipendente dal modello
 - [x] 9. Integrazione di `urdfdom` per la lettura dei file URDF
 - [x] 10. `URDFModel` e Forward Kinematics da `origin`, `axis` e tipo di joint
-- [ ] 11. Test di equivalenza tra i modelli URDF cinematico e visuale
+- [x] 11. Test di equivalenza tra i modelli URDF cinematico e visuale
 - [ ] 12. Verifica del Jacobiano generico con `URDFModel`
 - [ ] 13. Adattamento della Inverse Kinematics a `KinematicModel`
 - [ ] 14. Nodo ROS 2
