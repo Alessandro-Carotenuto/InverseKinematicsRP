@@ -28,7 +28,7 @@ La struttura dei modelli cinematici e le scelte progettuali sono descritte in [D
 - [x] 20. Test FK di `URDFModel`
 - [x] 21. Equivalenza tra URDF cinematico e visuale
 - [x] 22. Test del Jacobiano generico con `URDFModel`
-- [ ] 23. Adattamento della IK a `KinematicModel`
+- [x] 23. Adattamento della IK a `KinematicModel`
 - [ ] 24. Test IK con `DHModel`
 - [ ] 25. Test IK con `URDFModel`
 - [ ] 26. Nodo ROS 2

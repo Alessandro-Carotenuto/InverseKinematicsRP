@@ -106,7 +106,7 @@ DHModel oppure URDFModel
           ↓
     KinematicModel
           ↓
-   FK e Jacobiano
+FK / Jacobiano / Inverse Kinematics
 ```
 
-La Inverse Kinematics verrà collegata a `KinematicModel` in uno step successivo.
+La vecchia API basata su `DHList` rimane disponibile tramite un wrapper che costruisce `DHModel`.
