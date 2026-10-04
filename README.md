@@ -31,20 +31,25 @@ La struttura dei modelli cinematici e le scelte progettuali sono descritte in [D
 - [x] 23. Adattamento della IK a `KinematicModel`
 - [x] 24. Test IK con `DHModel`
 - [x] 25. Test IK con `URDFModel`
-- [ ] 26. Nodo ROS 2
-- [ ] 27. Ricezione target cartesiano
-- [ ] 28. Pubblicazione `JointState`
-- [ ] 29. Parametri YAML
-- [ ] 30. `robot_state_publisher` e TF
-- [ ] 31. Configurazione RViz
-- [ ] 32. Dimostrazione completa
-- [ ] 33. Estensione IK all'orientamento dell'end-effector
+- [x] 26. Schema YAML per modelli DH
+- [x] 27. `DHModel::FromYAML`
+- [x] 28. Test caricamento, limiti, offset e FK da YAML
+- [x] 29. Nomi joint nell'interfaccia `KinematicModel`
+- [ ] 30. Nodo ROS 2
+- [ ] 31. Ricezione target cartesiano
+- [ ] 32. Pubblicazione `JointState`
+- [ ] 33. Parametri YAML del nodo
+- [ ] 34. `robot_state_publisher` e TF
+- [ ] 35. Configurazione RViz
+- [ ] 36. Dimostrazione completa
+- [ ] 37. Estensione IK all'orientamento dell'end-effector
 
 La Inverse Kinematics attuale considera soltanto la posizione cartesiana dell'end-effector, non il suo orientamento.
 
 ## Scelte tecniche
 
 - `urdfdom` viene usato per analizzare l'XML: non viene sviluppato un parser URDF interno.
+- `yaml-cpp` carica i modelli DH da file YAML: non viene sviluppato un parser YAML interno.
 - L'estrazione della catena e la Forward Kinematics da URDF vengono implementate nel progetto, senza KDL.
 - Il Jacobiano numerico e la Inverse Kinematics rimangono implementazioni del progetto.
 - `DHModel` e `URDFModel` condividono l'interfaccia `KinematicModel`, quindi la cinematica DH resta disponibile.

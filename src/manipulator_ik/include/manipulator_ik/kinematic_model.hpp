@@ -1,5 +1,6 @@
 #pragma once
 #include <Eigen/Dense>
+#include <string>
 
 
 class KinematicModel
@@ -13,6 +14,7 @@ class KinematicModel
         virtual double getJointMin(int index) const = 0;
         virtual double getJointMax(int index) const = 0;
         virtual bool isJointLimited(int index) const = 0;
+        virtual std::string getJointName(int index) const = 0;
 };
 
 

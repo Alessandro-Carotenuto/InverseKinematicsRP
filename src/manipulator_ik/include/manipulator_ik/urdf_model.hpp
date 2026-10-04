@@ -18,6 +18,7 @@ class URDFModel : public KinematicModel
 
         struct JointData
         {
+            std::string name;
             JointMotionType type;
             Eigen::Matrix4d origin;
             Eigen::Vector3d axis;
@@ -47,4 +48,5 @@ class URDFModel : public KinematicModel
         double getJointMin(int index) const override;
         double getJointMax(int index) const override;
         bool isJointLimited(int index) const override;
+        std::string getJointName(int index) const override;
 };

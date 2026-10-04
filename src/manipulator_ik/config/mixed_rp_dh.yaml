@@ -1,0 +1,22 @@
+robot:
+  name: mixed_rp
+  joints:
+    - name: base_rotation
+      type: revolute
+      alpha: 0.0
+      a: 1.0
+      theta: 0.2
+      d: 0.0
+      limited: true
+      lower: -1.0
+      upper: 1.0
+
+    - name: vertical_slide
+      type: prismatic
+      alpha: 0.0
+      a: 0.0
+      theta: 0.0
+      d: 0.3
+      limited: true
+      lower: 0.0
+      upper: 0.8

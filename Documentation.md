@@ -35,6 +35,7 @@ getDOF()
 getJointMin(index)
 getJointMax(index)
 isJointLimited(index)
+getJointName(index)
 ```
 
 `DHModel` implementa questa interfaccia usando la `DHList` esistente.
@@ -58,9 +59,25 @@ urdf::ModelInterfaceSharedPtr model = urdf::parseURDFFile(path);
 
 Il test di caricamento verifica entrambi gli URDF: nome, root, link, joint, tipi, assi, origini e limiti.
 
+### 6. Caricamento DH da YAML
+
+`DHModel::FromYAML(path)` usa `yaml-cpp` per creare una `DHList` da file.
+
+Ogni joint contiene nome, tipo, `alpha`, `a`, `theta`, `d` e limiti. Sono supportati joint `revolute` e `prismatic`.
+
+I parametri variabili sono applicati come offset:
+
+```text
+revolute:  theta_effettivo = theta_yaml + q
+prismatic: d_effettivo     = d_yaml + q
+```
+
+Il costruttore storico `DHModel(DHList)` conserva il comportamento precedente usando offset nulli. I nomi caricati sono esposti da `KinematicModel` per la futura pubblicazione ROS.
+
 ## Scelte di design
 
 - `urdfdom` analizza l'XML. Il progetto non implementa un parser.
+- `yaml-cpp` analizza lo YAML DH. Il progetto valida schema, tipi e limiti.
 - Il progetto implementa FK, Jacobiano e IK. Non usa KDL per questi calcoli.
 - `DHModel` rimane disponibile insieme a `URDFModel`.
 - `KinematicModel` permette agli algoritmi di ignorare la rappresentazione interna.
@@ -99,14 +116,14 @@ Il test verifica metadati, configurazione zero, entrambi i joint revolute, joint
 
 Il Jacobiano generico funziona con `URDFModel`; il test numerico coincide con il Jacobiano analitico del manipolatore RRP.
 
+`getJointName(index)` restituisce i joint mobili, in ordine di configurazione `q`; i joint fixed non occupano un indice.
+
 ## Flusso attuale
 
 ```text
-DHModel oppure URDFModel
-          ↓
-    KinematicModel
-          ↓
-FK / Jacobiano / Inverse Kinematics
+YAML DH → DHModel ─┐
+                   ├→ KinematicModel → FK / Jacobiano / IK
+URDF → URDFModel ──┘
 ```
 
 La vecchia API basata su `DHList` rimane disponibile tramite un wrapper che costruisce `DHModel`.

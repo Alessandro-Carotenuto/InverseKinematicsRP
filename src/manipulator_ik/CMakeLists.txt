@@ -10,6 +10,8 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(urdfdom REQUIRED)
+find_package(yaml_cpp_vendor REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 add_library(kinematics
   src/forward_kinematics.cpp
@@ -63,6 +65,10 @@ add_executable(test_urdf_model_ik
   src/test_urdf_model_ik.cpp
 )
 
+add_executable(test_dh_yaml
+  src/test_dh_yaml.cpp
+)
+
 target_include_directories(kinematics PUBLIC include)
 
 target_link_libraries(test_fk kinematics)
@@ -76,14 +82,16 @@ target_link_libraries(test_urdf_equivalence kinematics)
 target_link_libraries(test_urdf_jacobian kinematics)
 target_link_libraries(test_dh_model_ik kinematics)
 target_link_libraries(test_urdf_model_ik kinematics)
+target_link_libraries(test_dh_yaml kinematics)
 
 target_link_libraries(kinematics
   PUBLIC Eigen3::Eigen
   PRIVATE urdfdom::urdf_parser
+          yaml-cpp::yaml-cpp
 )
 
 install(
-  DIRECTORY urdf
+  DIRECTORY urdf config
   DESTINATION share/${PROJECT_NAME}
 )
 

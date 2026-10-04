@@ -112,6 +112,7 @@ URDFModel URDFModel::FromFile(
     for (const urdf::JointConstSharedPtr& ParsedJoint : ParsedJointChain)
     {
         JointData Joint{};
+        Joint.name = ParsedJoint->name;
         Joint.origin = PoseToMatrix(ParsedJoint->parent_to_joint_origin_transform);
         Joint.axis = Eigen::Vector3d(
             ParsedJoint->axis.x,
@@ -241,4 +242,9 @@ double URDFModel::getJointMax(int index) const
 bool URDFModel::isJointLimited(int index) const
 {
     return getActiveJoint(index).is_limited;
+}
+
+std::string URDFModel::getJointName(int index) const
+{
+    return getActiveJoint(index).name;
 }

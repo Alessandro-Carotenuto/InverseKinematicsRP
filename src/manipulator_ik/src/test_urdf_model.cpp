@@ -26,7 +26,10 @@ int main(int argc, char* argv[])
                            std::abs(Model.getJointMin(0) + pi) <= tolerance &&
                            std::abs(Model.getJointMax(1) - 1.20) <= tolerance &&
                            std::abs(Model.getJointMin(2)) <= tolerance &&
-                           std::abs(Model.getJointMax(2) - 0.80) <= tolerance;
+                           std::abs(Model.getJointMax(2) - 0.80) <= tolerance &&
+                           Model.getJointName(0) == "joint_1" &&
+                           Model.getJointName(1) == "joint_2" &&
+                           Model.getJointName(2) == "joint_3";
 
     all_passed = all_passed && metadata_passed;
     std::cout << "Model metadata: " << (metadata_passed ? "PASSED" : "NOT PASSED") << "\n";
