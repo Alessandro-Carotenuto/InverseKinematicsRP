@@ -22,51 +22,51 @@ add_library(kinematics
 )
 
 add_executable(test_fk
-  src/test_fk.cpp
+  src/test/test_fk.cpp
 )
 
 add_executable(test_jacobian
-  src/test_jacobian.cpp
+  src/test/test_jacobian.cpp
 )
 
 add_executable(test_pseudoinverse
-  src/test_pseudoinverse.cpp
+  src/test/test_pseudoinverse.cpp
 )
 
 add_executable(test_inverse_kinematics
-  src/test_inverse_kinematics.cpp
+  src/test/test_inverse_kinematics.cpp
 )
 
 add_executable(test_kinematic_model
-  src/test_kinematic_model.cpp
+  src/test/test_kinematic_model.cpp
 )
 
 add_executable(test_urdf_loading
-  src/test_urdf_loading.cpp
+  src/test/test_urdf_loading.cpp
 )
 
 add_executable(test_urdf_model
-  src/test_urdf_model.cpp
+  src/test/test_urdf_model.cpp
 )
 
 add_executable(test_urdf_equivalence
-  src/test_urdf_equivalence.cpp
+  src/test/test_urdf_equivalence.cpp
 )
 
 add_executable(test_urdf_jacobian
-  src/test_urdf_jacobian.cpp
+  src/test/test_urdf_jacobian.cpp
 )
 
 add_executable(test_dh_model_ik
-  src/test_dh_model_ik.cpp
+  src/test/test_dh_model_ik.cpp
 )
 
 add_executable(test_urdf_model_ik
-  src/test_urdf_model_ik.cpp
+  src/test/test_urdf_model_ik.cpp
 )
 
 add_executable(test_dh_yaml
-  src/test_dh_yaml.cpp
+  src/test/test_dh_yaml.cpp
 )
 
 target_include_directories(kinematics PUBLIC include)
