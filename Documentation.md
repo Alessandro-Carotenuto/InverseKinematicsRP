@@ -131,3 +131,13 @@ La vecchia API basata su `DHList` rimane disponibile tramite un wrapper che cost
 Il test diretto con `DHModel` conferma che la IK generica raggiunge i target cartesiani senza usare il wrapper.
 
 Il test diretto con `URDFModel` conferma lo stesso flusso usando la catena caricata dal file URDF.
+
+## Reload dinamico futuro
+
+Il primo nodo ROS 2 caricherà il modello nel costruttore e richiederà un riavvio per cambiarlo.
+
+Una futura estensione permetterà di cambiare modello mentre il nodo rimane attivo. Un service ROS riceverà la richiesta di reload; un topic non verrà usato perché il reload è un comando con esito, non un flusso continuo di dati.
+
+Il nuovo modello verrà costruito e validato in una variabile temporanea. `model_` verrà sostituito soltanto dopo un caricamento completo. Se caricamento o validazione falliscono, il nodo risponderà con un errore e continuerà a usare il modello precedente.
+
+Un eventuale reset dello stato della IK verrà esposto tramite un service separato, quando il nodo introdurrà uno stato persistente da azzerare.

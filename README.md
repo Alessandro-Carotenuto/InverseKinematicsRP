@@ -43,6 +43,7 @@ La struttura dei modelli cinematici e le scelte progettuali sono descritte in [D
 - [ ] 35. Configurazione RViz
 - [ ] 36. Dimostrazione completa
 - [ ] 37. Estensione IK all'orientamento dell'end-effector
+- [ ] 38. Reload dinamico del modello durante l'esecuzione
 
 La Inverse Kinematics attuale considera soltanto la posizione cartesiana dell'end-effector, non il suo orientamento.
 
@@ -55,3 +56,4 @@ La Inverse Kinematics attuale considera soltanto la posizione cartesiana dell'en
 - `DHModel` e `URDFModel` condividono l'interfaccia `KinematicModel`, quindi la cinematica DH resta disponibile.
 - Il nodo usa `rclcpp`; `robot_state_publisher`, TF e RViz gestiscono pubblicazione delle trasformazioni e visualizzazione.
 - Gli URDF cinematico e visuale descrivono la stessa catena; il secondo aggiunge soltanto geometrie e materiali.
+- Il reload dinamico del modello sarà esposto tramite un service, mantenendo attivo il modello corrente se il nuovo caricamento fallisce.
