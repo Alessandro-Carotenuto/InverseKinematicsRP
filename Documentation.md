@@ -97,7 +97,7 @@ T = T × Origin × JointMotion(q)
 
 Il test verifica metadati, configurazione zero, entrambi i joint revolute, joint prismatic e dimensione di `q`.
 
-Il Jacobiano generico funzionerà senza un secondo algoritmo.
+Il Jacobiano generico funziona con `URDFModel`; il test numerico coincide con il Jacobiano analitico del manipolatore RRP.
 
 ## Flusso attuale
 

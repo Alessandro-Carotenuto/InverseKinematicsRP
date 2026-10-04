@@ -51,6 +51,10 @@ add_executable(test_urdf_equivalence
   src/test_urdf_equivalence.cpp
 )
 
+add_executable(test_urdf_jacobian
+  src/test_urdf_jacobian.cpp
+)
+
 target_include_directories(kinematics PUBLIC include)
 
 target_link_libraries(test_fk kinematics)
@@ -61,6 +65,7 @@ target_link_libraries(test_kinematic_model kinematics)
 target_link_libraries(test_urdf_loading urdfdom::urdf_parser)
 target_link_libraries(test_urdf_model kinematics)
 target_link_libraries(test_urdf_equivalence kinematics)
+target_link_libraries(test_urdf_jacobian kinematics)
 
 target_link_libraries(kinematics
   PUBLIC Eigen3::Eigen
