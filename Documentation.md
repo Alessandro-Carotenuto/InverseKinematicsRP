@@ -112,3 +112,5 @@ FK / Jacobiano / Inverse Kinematics
 La vecchia API basata su `DHList` rimane disponibile tramite un wrapper che costruisce `DHModel`.
 
 Il test diretto con `DHModel` conferma che la IK generica raggiunge i target cartesiani senza usare il wrapper.
+
+Il test diretto con `URDFModel` conferma lo stesso flusso usando la catena caricata dal file URDF.

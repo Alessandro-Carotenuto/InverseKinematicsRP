@@ -59,6 +59,10 @@ add_executable(test_dh_model_ik
   src/test_dh_model_ik.cpp
 )
 
+add_executable(test_urdf_model_ik
+  src/test_urdf_model_ik.cpp
+)
+
 target_include_directories(kinematics PUBLIC include)
 
 target_link_libraries(test_fk kinematics)
@@ -71,6 +75,7 @@ target_link_libraries(test_urdf_model kinematics)
 target_link_libraries(test_urdf_equivalence kinematics)
 target_link_libraries(test_urdf_jacobian kinematics)
 target_link_libraries(test_dh_model_ik kinematics)
+target_link_libraries(test_urdf_model_ik kinematics)
 
 target_link_libraries(kinematics
   PUBLIC Eigen3::Eigen

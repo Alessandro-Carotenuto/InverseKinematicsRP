@@ -30,7 +30,7 @@ La struttura dei modelli cinematici e le scelte progettuali sono descritte in [D
 - [x] 22. Test del Jacobiano generico con `URDFModel`
 - [x] 23. Adattamento della IK a `KinematicModel`
 - [x] 24. Test IK con `DHModel`
-- [ ] 25. Test IK con `URDFModel`
+- [x] 25. Test IK con `URDFModel`
 - [ ] 26. Nodo ROS 2
 - [ ] 27. Ricezione target cartesiano
 - [ ] 28. Pubblicazione `JointState`
