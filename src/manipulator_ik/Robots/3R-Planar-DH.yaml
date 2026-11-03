@@ -1,5 +1,5 @@
 robot:
-  name: planar_3r
+  name: "3R-Planar-DH"
   joints:
     - name: joint_1
       type: revolute

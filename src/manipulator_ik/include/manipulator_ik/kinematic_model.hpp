@@ -11,6 +11,7 @@ class KinematicModel
         virtual Eigen::Matrix4d ForwardKinematics(const Eigen::VectorXd& q) const = 0;
 
         virtual int getDOF() const = 0;
+        virtual bool isJointRevolute(int index) const = 0;
         virtual double getJointMin(int index) const = 0;
         virtual double getJointMax(int index) const = 0;
         virtual bool isJointLimited(int index) const = 0;

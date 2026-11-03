@@ -1,143 +1,119 @@
 # Documentazione tecnica
 
-## Evoluzione del progetto
+## Panoramica
 
-### 1. Modello Denavit–Hartenberg
-
-`DHMatrix` rappresenta un joint tramite parametri DH, tipo, limiti e matrice omogenea `4×4`.
-
-`ForwardKinematics(DHList)` moltiplica le matrici della catena e restituisce la posa dell'end-effector.
-
-### 2. Jacobiano e Inverse Kinematics
-
-Il Jacobiano lineare viene calcolato numericamente perturbando un joint alla volta.
-
-La pseudoinversa usa SVD. La Inverse Kinematics aggiorna iterativamente `q` per ridurre l'errore cartesiano.
-
-La IK attuale controlla solo la posizione, non l'orientamento.
-
-### 3. Modello URDF
-
-Sono presenti due descrizioni dello stesso manipolatore RRP:
-
-- `manipulator_rrp.urdf`: sola cinematica;
-- `manipulator_rrp_visual.urdf`: stessa cinematica con geometrie e materiali.
-
-Il test di equivalenza conferma che producono stessi DOF, limiti e FK.
-
-### 4. Interfaccia comune
-
-`KinematicModel` definisce:
-
-```cpp
-ForwardKinematics(q)
-getDOF()
-getJointMin(index)
-getJointMax(index)
-isJointLimited(index)
-getJointName(index)
-```
-
-`DHModel` implementa questa interfaccia usando la `DHList` esistente.
+Il repository contiene una libreria di cinematica e un nodo ROS 2. I due formati di modello convergono sulla stessa interfaccia:
 
 ```text
-                 KinematicModel
-                 /            \
-            DHModel          URDFModel
-          implementato      implementato
+DH YAML ──> DHModel ───┐
+                      ├──> KinematicModel ──> FK / Jacobiano / IK
+URDF ──> urdfdom ─> URDFModel ─┘
+
+targetPosition.yaml ──> service ROS ──> IK ──> stato e giunti nei log
 ```
 
-Il Jacobiano generico riceve `KinematicModel`. Non dipende più dalla rappresentazione DH.
+## Struttura del codice
 
-### 5. Integrazione `urdfdom`
+- `src/manipulator_ik/include/manipulator_ik/forward_kinematics.hpp`: parametri DH, `DHMatrix` e API delle FK/Jacobiane DH.
+- `src/manipulator_ik/src/forward_kinematics.cpp`: matrice DH, FK DH e Jacobiano numerico.
+- `src/manipulator_ik/include/manipulator_ik/kinematic_model.hpp`: interfaccia comune dei modelli.
+- `src/manipulator_ik/src/dh_model.cpp`: modello DH e caricamento YAML.
+- `src/manipulator_ik/src/urdf_model.cpp`: caricamento URDF, costruzione della catena e FK URDF.
+- `src/manipulator_ik/src/inverse_kinematics.cpp`: pseudoinversa SVD e IK iterativa generica.
+- `src/manipulator_ik/src/manipulator_ik_node.cpp`: nodo ROS 2, caricamento modello, lettura target e service.
+- `src/manipulator_ik/Robots/`: modelli di esempio.
 
-`urdfdom` legge l'XML e restituisce un `urdf::ModelInterface` contenente link, joint e relazioni parent/child.
+## Interfaccia dei modelli
 
-```cpp
-urdf::ModelInterfaceSharedPtr model = urdf::parseURDFFile(path);
-```
+`KinematicModel` espone le operazioni usate dagli algoritmi indipendentemente dal formato del modello:
 
-Il test di caricamento verifica entrambi gli URDF: nome, root, link, joint, tipi, assi, origini e limiti.
+- `ForwardKinematics(q)` restituisce una trasformazione omogenea `4×4`.
+- `getDOF()` restituisce il numero di giunti mobili.
+- `isJointRevolute(index)` distingue coordinate angolari e prismatiche.
+- `getJointName(index)` restituisce il nome del giunto associato alla coordinata.
+- `getJointMin(index)`, `getJointMax(index)` e `isJointLimited(index)` espongono i limiti dichiarati nel modello.
 
-### 6. Caricamento DH da YAML
+I giunti fissi URDF partecipano alla catena di trasformazioni, ma non hanno una coordinata in `q`.
 
-`DHModel::FromYAML(path)` usa `yaml-cpp` per creare una `DHList` da file.
+## Modello DH da YAML
 
-Ogni joint contiene nome, tipo, `alpha`, `a`, `theta`, `d` e limiti. Sono supportati joint `revolute` e `prismatic`.
+`DHModel::FromYAML(path)` usa `yaml-cpp` per leggere la sequenza `robot.joints`. Ogni giunto mobile dichiara `name`, `type`, `alpha`, `a`, `theta` e `d`; i limiti sono dichiarati con `limited`, `lower` e `upper`.
 
-I parametri variabili sono applicati come offset:
+Per il formato caricato da YAML, la configurazione `q` si somma all’offset DH:
 
 ```text
 revolute:  theta_effettivo = theta_yaml + q
 prismatic: d_effettivo     = d_yaml + q
 ```
 
-Il costruttore storico `DHModel(DHList)` conserva il comportamento precedente usando offset nulli. I nomi caricati sono esposti da `KinematicModel` per la futura pubblicazione ROS.
+La FK costruisce le matrici DH configurate e le moltiplica nell’ordine della catena.
 
-## Scelte di design
+## Modello URDF
 
-- `urdfdom` analizza l'XML. Il progetto non implementa un parser.
-- `yaml-cpp` analizza lo YAML DH. Il progetto valida schema, tipi e limiti.
-- Il progetto implementa FK, Jacobiano e IK. Non usa KDL per questi calcoli.
-- `DHModel` rimane disponibile insieme a `URDFModel`.
-- `KinematicModel` permette agli algoritmi di ignorare la rappresentazione interna.
-- Codice cinematico indipendente dal futuro nodo ROS 2.
-- `robot_state_publisher`, TF e RViz serviranno solo per trasformazioni ROS e visualizzazione.
+`URDFModel::FromFile(path, base_link, tool_link)` usa `urdfdom` per analizzare il file XML. Il parser risale dal tool verso la base, raccoglie i giunti parent e poi inverte la sequenza per ottenere l’ordine base-tool.
 
-## `URDFModel` e Forward Kinematics
-
-Il modello viene costruito indicando file, base ed end-effector:
-
-```cpp
-URDFModel::FromFile(path, "base_link", "tool0");
-```
-
-La catena viene ricavata risalendo da `tool0` a `base_link`, poi invertita.
-
-Ogni joint interno conserva:
-
-- tipo: revolute, prismatic o fixed;
-- trasformazione `origin`;
-- `axis` normalizzato;
-- limiti;
-- indice dentro `q`, oppure `-1` per joint fixed.
-
-La FK usa:
+Per ogni passaggio della catena, la FK compone:
 
 ```text
-T = T × Origin × JointMotion(q)
+T = T × origin × joint_motion(q)
 ```
 
-- revolute: rotazione attorno ad `axis`;
-- prismatic: traslazione lungo `axis`;
-- fixed: identità, senza elemento in `q`.
+- `origin` è la posa fissa dichiarata dal joint URDF.
+- Un giunto revolute applica una rotazione attorno all’asse del giunto.
+- Un giunto prismatic applica una traslazione lungo l’asse.
+- Un giunto fixed applica solo `origin` e non usa una coordinata in `q`.
 
-Il test verifica metadati, configurazione zero, entrambi i joint revolute, joint prismatic e dimensione di `q`.
+Il nodo attuale carica la catena URDF tra `base_link` e `tool0`.
 
-Il Jacobiano generico funziona con `URDFModel`; il test numerico coincide con il Jacobiano analitico del manipolatore RRP.
+## Jacobiano e Inverse Kinematics
 
-`getJointName(index)` restituisce i joint mobili, in ordine di configurazione `q`; i joint fixed non occupano un indice.
+Il Jacobiano lineare è calcolato con differenze finite: si calcola la posizione di base e si perturba una coordinata di `q` per volta. Ogni colonna misura come cambia la posizione dell’end-effector quando cambia quel giunto.
 
-## Flusso attuale
+La pseudoinversa è costruita dalla decomposizione SVD di Eigen, azzerando i valori singolari sotto la soglia specificata. La IK usa l’aggiornamento iterativo `q ← q + J⁺ e`, dove `e` è la differenza tra posizione target e posizione corrente.
 
-```text
-YAML DH → DHModel ─┐
-                   ├→ KinematicModel → FK / Jacobiano / IK
-URDF → URDFModel ──┘
+Il guess iniziale è zero per i giunti senza limiti; per i giunti limitati è il punto medio tra minimo e massimo dichiarati. Dopo ogni aggiornamento, le coordinate revolute vengono riportate con `std::remainder(q, 2π)` nell’intervallo angolare canonico `[-π, π]`; le coordinate prismatiche non vengono alterate.
+
+La flag `Converged` è determinata dall’errore finale sulla posizione rispetto alla tolleranza. La routine non risolve l’orientamento dell’end-effector e non vincola gli aggiornamenti ai limiti meccanici del modello. La normalizzazione periodica degli angoli non equivale a imporre limiti reali.
+
+## Nodo ROS 2
+
+Il nodo si chiama `manipulator_ik_node` e riceve all’avvio il nome del file modello senza estensione. Cerca il file nella directory `src/manipulator_ik/Robots`; l’estensione `.yaml` seleziona `DHModel`, `.urdf` seleziona `URDFModel`.
+
+Il service `EE_pos_update` usa `std_srvs/srv/Trigger`, quindi non riceve coordinate nella richiesta. Alla chiamata:
+
+1. legge `position.x`, `position.y` e `position.z` da `src/manipulator_ik/src/targetPosition.yaml`;
+2. calcola la IK sul modello caricato all’avvio;
+3. imposta `success` e `message` nella risposta del service;
+4. stampa convergenza e configurazione articolare nei log.
+
+Il file YAML viene riletto a ogni chiamata: si può cambiare il target senza riavviare il nodo. Il nodo attuale non pubblica la configurazione su un topic e non pubblica `JointState`.
+
+### Build e uso
+
+Dalla root del workspace:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+colcon build --packages-select manipulator_ik
+source install/setup.bash
+ros2 run manipulator_ik manipulator_ik_node 3R-Planar-DH
 ```
 
-La vecchia API basata su `DHList` rimane disponibile tramite un wrapper che costruisce `DHModel`.
+Da un secondo terminale, dopo aver sourced ROS e `install/setup.bash`, chiamare:
 
-Il test diretto con `DHModel` conferma che la IK generica raggiunge i target cartesiani senza usare il wrapper.
+```bash
+ros2 service call /EE_pos_update std_srvs/srv/Trigger "{}"
+```
 
-Il test diretto con `URDFModel` conferma lo stesso flusso usando la catena caricata dal file URDF.
+I percorsi del nodo sono relativi alla directory di lavoro: avviare il processo dalla root del workspace.
 
-## Reload dinamico futuro
+## Modelli presenti e attività rimanenti
 
-Il primo nodo ROS 2 caricherà il modello nel costruttore e richiederà un riavvio per cambiarlo.
+I modelli correnti sono `3R-Planar-DH.yaml` e `3R-Planar-URDF.urdf`. Entrambi rappresentano tre giunti revolute planari e tre link di lunghezza unitaria. I file dichiarano limiti `[-π, π]`, inseriti come valori del modello d’esempio; il solver non li applica come vincoli durante l’iterazione.
 
-Una futura estensione permetterà di cambiare modello mentre il nodo rimane attivo. Un service ROS riceverà la richiesta di reload; un topic non verrà usato perché il reload è un comando con esito, non un flusso continuo di dati.
+Per il 3R planare la coordinata z dell’end-effector è sempre zero. Il file target presente in repository contiene attualmente `z: 0.10`, che non è raggiungibile con questi due modelli; usare `z: 0.0` per una richiesta planare raggiungibile.
 
-Il nuovo modello verrà costruito e validato in una variabile temporanea. `model_` verrà sostituito soltanto dopo un caricamento completo. Se caricamento o validazione falliscono, il nodo risponderà con un errore e continuerà a usare il modello precedente.
+Le attività che restano per lo scopo attuale sono:
 
-Un eventuale reset dello stato della IK verrà esposto tramite un service separato, quando il nodo introdurrà uno stato persistente da azzerare.
+- aggiungere altri modelli di robot in formato DH e/o URDF;
+- aggiungere la visualizzazione del manipolatore, includendo la pubblicazione dello stato dei giunti e l’integrazione con TF/RViz.

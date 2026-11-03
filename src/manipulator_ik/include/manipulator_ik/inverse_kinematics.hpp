@@ -11,11 +11,13 @@ void ApplyJointConfiguration(std::vector<DHMatrix>& DHList, const Eigen::VectorX
 Eigen::VectorXd Inverse_Kinematic(
     const Eigen::Vector3d& Target_Position,
     const KinematicModel& Model,
+    bool& Converged,
     const double tol=1e-4,
     const int max_it=20);
 
 Eigen::VectorXd Inverse_Kinematic(
     Eigen::Vector3d& Actual_Position,
     std::vector<DHMatrix>& DHList,
+    bool& Converged,
     const double tol=1e-4,
     const int max_it=20);

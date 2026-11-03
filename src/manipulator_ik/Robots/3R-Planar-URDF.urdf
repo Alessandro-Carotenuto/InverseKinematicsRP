@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot name="planar_3r">
+<robot name="3R-Planar-URDF">
   <link name="base_link"/>
 
   <joint name="joint_1" type="revolute">

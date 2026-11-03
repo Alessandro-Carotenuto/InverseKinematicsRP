@@ -2,6 +2,14 @@
 #include "manipulator_ik/dh_model.hpp"
 #include "manipulator_ik/forward_kinematics.hpp"
 
+#include <cmath>
+
+namespace
+{
+    constexpr double TwoPi = 6.28318530717958647692;
+}
+
+
 
 
 //PSEUDO INVERSE VIA SVD
@@ -59,6 +67,7 @@ void ApplyJointConfiguration(std::vector<DHMatrix>& DHList, const Eigen::VectorX
 Eigen::VectorXd Inverse_Kinematic(
     const Eigen::Vector3d& Target_Position,
     const KinematicModel& Model,
+    bool& Converged,
     const double tol,
     const int max_it)
 {
@@ -96,8 +105,20 @@ Eigen::VectorXd Inverse_Kinematic(
         J = Jacobian_Linear(Model, Current_Guess);
         delta_q = Pseudo_Inverse(J)*error;
         Current_Guess = Current_Guess+delta_q;
+        for (int i=0; i<nlinks; i++)
+        {
+            if (Model.isJointRevolute(i))
+            {
+                Current_Guess(i) = std::remainder(Current_Guess(i), TwoPi);
+            }
+        }
         iterations++;
     } while (iterations<max_it);
+
+    CurrentGuessFK = Model.ForwardKinematics(Current_Guess);
+    CurrentGuessPOS = CurrentGuessFK.block<3, 1>(0, 3);
+    error = Target_Position - CurrentGuessPOS;
+    Converged = error.norm() < tol;
 
     return Current_Guess;
 }
@@ -105,12 +126,13 @@ Eigen::VectorXd Inverse_Kinematic(
 Eigen::VectorXd Inverse_Kinematic(
     Eigen::Vector3d& Actual_Position,
     std::vector<DHMatrix>& DHList,
+    bool& Converged,
     const double tol,
     const int max_it)
 {
     // Preserve the old DHList API by adapting it to the generic model interface.
     DHModel Model(DHList);
-    Eigen::VectorXd Result = Inverse_Kinematic(Actual_Position, Model, tol, max_it);
+    Eigen::VectorXd Result = Inverse_Kinematic(Actual_Position, Model, Converged, tol, max_it);
 
     ApplyJointConfiguration(DHList, Result);
     return Result;

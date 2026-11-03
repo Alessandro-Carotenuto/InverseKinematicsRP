@@ -45,6 +45,7 @@ class URDFModel : public KinematicModel
         Eigen::Matrix4d ForwardKinematics(const Eigen::VectorXd& q) const override;
 
         int getDOF() const override;
+        bool isJointRevolute(int index) const override;
         double getJointMin(int index) const override;
         double getJointMax(int index) const override;
         bool isJointLimited(int index) const override;

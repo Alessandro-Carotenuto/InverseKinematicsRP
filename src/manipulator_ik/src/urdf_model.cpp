@@ -219,6 +219,11 @@ int URDFModel::getDOF() const
     return static_cast<int>(ActiveJointIndices.size());
 }
 
+bool URDFModel::isJointRevolute(int index) const
+{
+    return getActiveJoint(index).type == JointMotionType::Revolute;
+}
+
 const URDFModel::JointData& URDFModel::getActiveJoint(int index) const
 {
     if (index < 0 || index >= getDOF())

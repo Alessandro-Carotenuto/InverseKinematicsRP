@@ -26,10 +26,9 @@ add_executable(manipulator_ik_node
   src/manipulator_ik_node.cpp
 )
 ament_target_dependencies(manipulator_ik_node rclcpp std_srvs)
-target_link_libraries(manipulator_ik_node kinematics)
-
+target_link_libraries(manipulator_ik_node kinematics yaml-cpp::yaml-cpp)
 target_include_directories(kinematics PUBLIC include)
-
+target_compile_features(manipulator_ik_node PRIVATE cxx_std_17)
 
 target_link_libraries(kinematics
   PUBLIC Eigen3::Eigen
@@ -42,7 +41,7 @@ install(TARGETS manipulator_ik_node
 )
 
 install(
-  DIRECTORY urdf config
+  DIRECTORY Robots
   DESTINATION share/${PROJECT_NAME}
 )
 

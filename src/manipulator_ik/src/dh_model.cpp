@@ -162,6 +162,11 @@ int DHModel::getDOF() const
     return static_cast<int>(DHList.size());
 }
 
+bool DHModel::isJointRevolute(int index) const
+{
+    return DHList[index].getJointType() == JointType::Revolute;
+}
+
 double DHModel::getJointMin(int index) const
 {
     return DHList[index].getJointMin();
