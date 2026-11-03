@@ -17,12 +17,21 @@ La descrizione tecnica è in [Documentation.md](Documentation.md).
 
 ## Modelli di esempio
 
-| File | Formato | Descrizione |
-|---|---|---|
-| `src/manipulator_ik/Robots/3R-Planar-DH.yaml` | YAML / DH | 3 giunti rotativi planari, link di lunghezza 1 |
-| `src/manipulator_ik/Robots/3R-Planar-URDF.urdf` | URDF | La stessa catena planare 3R, con base `base_link` e tool `tool0` |
+Per ogni robot sono disponibili entrambe le descrizioni: parametri DH in YAML e catena URDF.
 
-Entrambi i modelli d’esempio dichiarano limiti angolari `[-π, π]`. La IK usa i limiti per scegliere il guess iniziale, ma non vincola ogni aggiornamento entro i limiti dichiarati: la normalizzazione degli angoli non sostituisce un algoritmo IK vincolato.
+| Robot | Giunti | Piano |
+|---|---|---|
+| 2R-Planar | R-R | XY |
+| 4R-Planar | R-R-R-R | XY |
+| PR-Planar | P-R | XY |
+| PRR-Planar | P-R-R | XY |
+| PPR-Planar | P-P-R | XY |
+| 3P-Planar | P-P-P | XY |
+| RPR-Planar | R-P-R | XY |
+| 3R-Planar | R-R-R | XY |
+| RRP-flv | R-R-P | spaziale |
+
+I file sono in src/manipulator_ik/Robots e si selezionano passando al nodo il nome del robot e il suffisso -DH o -URDF, senza estensione. I modelli con suffisso Planar sono nel piano XY; RRP-flv è spaziale. I giunti R hanno limiti d’esempio [-π, π]; i giunti P hanno limiti d’esempio [-1, 1] metri. I limiti sono dichiarati nei modelli, ma la IK non vincola ogni aggiornamento entro questi intervalli.
 
 ## Build e avvio
 
@@ -68,8 +77,42 @@ Ogni chiamata rilegge il file. Dopo aver modificato le coordinate, richiamare il
 
 > **Nota sul modello planare:** i modelli 3R d’esempio hanno tutti gli assi di rotazione lungo z e mantengono l’end-effector nel piano `z = 0`. Un target con `z` diverso da zero non è raggiungibile. Il `targetPosition.yaml` presente nel repository al momento della documentazione riporta `z: 0.10`; impostarlo a `0.0` per una richiesta raggiungibile dal modello planare.
 
+## Visualizzazione con RViz
+
+Gli URDF attuali descrivono link e giunti, ma non contengono geometrie visuali. Aggiungi una geometria, ad esempio un cilindro o un box, a ciascun link che vuoi vedere. Senza questi elementi, RViz può mostrare i frame TF ma non il corpo del robot.
+
+Se i pacchetti non sono installati:
+~~~bash
+sudo apt install ros-jazzy-rviz2 ros-jazzy-robot-state-publisher ros-jazzy-joint-state-publisher-gui
+~~~
+
+Per provare il modello URDF con slider manuali, usa tre terminali.
+
+Terminale 1, dalla root del workspace:
+~~~bash
+source /opt/ros/jazzy/setup.bash
+cd ~/InverseKinematicsRP
+ros2 run robot_state_publisher robot_state_publisher --ros-args -p robot_description:="$(cat src/manipulator_ik/Robots/RRP-flv-URDF.urdf)"
+~~~
+
+Terminale 2:
+~~~bash
+source /opt/ros/jazzy/setup.bash
+ros2 run joint_state_publisher_gui joint_state_publisher_gui
+~~~
+
+Terminale 3:
+~~~bash
+source /opt/ros/jazzy/setup.bash
+rviz2
+~~~
+
+In RViz imposta Fixed Frame su base_link e aggiungi il display RobotModel. La GUI pubblica stati manuali dei giunti; robot_state_publisher li converte in trasformazioni TF.
+
+Questa prova manuale non mostra la configurazione calcolata dal service. Il nodo attuale stampa i valori nei log, ma non pubblica /joint_states. Per animare il robot dopo EE_pos_update, il nodo deve pubblicare sensor_msgs/msg/JointState con i nomi e le posizioni contenute in joint_configuration; poi robot_state_publisher aggiorna TF e RViz mostra la nuova posa. In questa modalità non avviare anche joint_state_publisher_gui.
+
 ## Limiti attuali e lavoro rimanente
 
 - La IK risolve la posizione dell’end-effector, non l’orientamento.
 - Il nodo stampa la configurazione, ma non pubblica `sensor_msgs/msg/JointState`.
-- Restano da aggiungere altri modelli di robot e la visualizzazione del manipolatore.
+- Restano da creare un launch file e una configurazione RViz per avviare i nodi insieme.

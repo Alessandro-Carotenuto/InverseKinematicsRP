@@ -3,6 +3,7 @@
 #include "manipulator_ik/forward_kinematics.hpp"
 
 #include <cmath>
+#include <cstddef>
 
 namespace
 {
@@ -46,18 +47,18 @@ void ApplyJointConfiguration(std::vector<DHMatrix>& DHList, const Eigen::VectorX
 
     //Set up the DHList to q_guess to compute FK
 
-    for (int i=0; i<DHList.size(); i++)
+    for (std::size_t i = 0; i < DHList.size(); ++i)
     {
         switch (DHList[i].getJointType())
         {
             case JointType::Revolute:
             {
-                DHList[i].setTheta(q(i));
+                DHList[i].setTheta(q(static_cast<Eigen::Index>(i)));
                 break;
             }
             case JointType::Prismatic:
             {
-                DHList[i].setD(q(i));
+                DHList[i].setD(q(static_cast<Eigen::Index>(i)));
                 break;
             }
         }

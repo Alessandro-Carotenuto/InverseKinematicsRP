@@ -1,0 +1,32 @@
+robot:
+  name: "RRP-flv-DH"
+  joints:
+    - name: joint_1
+      type: revolute
+      alpha: 1.5707963267948966
+      a: 0.0
+      theta: 0.0
+      d: 1.0
+      limited: true
+      lower: -3.141592653589793
+      upper: 3.141592653589793
+
+    - name: joint_2
+      type: revolute
+      alpha: 1.5707963267948966
+      a: 0.0
+      theta: 0.0
+      d: 0.0
+      limited: true
+      lower: -3.141592653589793
+      upper: 3.141592653589793
+
+    - name: joint_3
+      type: prismatic
+      alpha: 0.0
+      a: 0.0
+      theta: 0.0
+      d: 0.0
+      limited: true
+      lower: -1.0
+      upper: 1.0

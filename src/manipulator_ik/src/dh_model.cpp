@@ -1,4 +1,5 @@
 #include "manipulator_ik/dh_model.hpp"
+#include <Eigen/Geometry>
 #include <set>
 #include <stdexcept>
 #include <yaml-cpp/yaml.h>
@@ -12,8 +13,9 @@ DHModel::DHModel(const std::vector<DHMatrix>& dh_list)
 
 DHModel::DHModel(const std::vector<DHMatrix>& dh_list,
                  const std::vector<double>& joint_offsets,
-                 const std::vector<std::string>& joint_names)
-    : DHList(dh_list), JointOffsets(joint_offsets), JointNames(joint_names)
+                 const std::vector<std::string>& joint_names,
+                 const Eigen::Matrix4d& base_transform)
+    : DHList(dh_list), JointOffsets(joint_offsets), JointNames(joint_names), BaseTransform(base_transform)
 {
     if (DHList.size() != JointOffsets.size() || DHList.size() != JointNames.size())
     {
@@ -37,6 +39,24 @@ DHModel DHModel::FromYAML(const std::string& path)
             throw std::invalid_argument("DH YAML must contain a non-empty robot.joints sequence");
         }
 
+        Eigen::Matrix4d BaseTransform = Eigen::Matrix4d::Identity();
+        YAML::Node Base = Robot["base"];
+        if (Base)
+        {
+            YAML::Node RPY = Base["rpy"];
+            if (!RPY || !RPY.IsSequence() || RPY.size() != 3)
+            {
+                throw std::invalid_argument("robot.base.rpy must contain [roll, pitch, yaw]");
+            }
+
+            const double Roll = RPY[0].as<double>();
+            const double Pitch = RPY[1].as<double>();
+            const double Yaw = RPY[2].as<double>();
+            BaseTransform.block<3, 3>(0, 0) =
+                (Eigen::AngleAxisd(Yaw, Eigen::Vector3d::UnitZ()) *
+                 Eigen::AngleAxisd(Pitch, Eigen::Vector3d::UnitY()) *
+                 Eigen::AngleAxisd(Roll, Eigen::Vector3d::UnitX())).toRotationMatrix();
+        }
         std::vector<DHMatrix> DHList;
         std::vector<double> JointOffsets;
         std::vector<std::string> JointNames;
@@ -115,7 +135,7 @@ DHModel DHModel::FromYAML(const std::string& path)
             JointNames.push_back(Name);
         }
 
-        return DHModel(DHList, JointOffsets, JointNames);
+        return DHModel(DHList, JointOffsets, JointNames, BaseTransform);
     }
     catch (const YAML::Exception& error)
     {
@@ -154,7 +174,7 @@ Eigen::Matrix4d DHModel::ForwardKinematics(const Eigen::VectorXd& q) const
         }
     }
 
-    return ::ForwardKinematics(ConfiguredDHList);
+    return BaseTransform * ::ForwardKinematics(ConfiguredDHList);
 }
 
 int DHModel::getDOF() const

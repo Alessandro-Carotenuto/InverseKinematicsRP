@@ -1,0 +1,42 @@
+robot:
+  name: "4R-Planar-DH"
+  joints:
+    - name: joint_1
+      type: revolute
+      alpha: 0
+      a: 1
+      theta: 0
+      d: 0.0
+      limited: true
+      lower: -3.141592653589793
+      upper: 3.141592653589793
+
+    - name: joint_2
+      type: revolute
+      alpha: 0
+      a: 1
+      theta: 0
+      d: 0.0
+      limited: true
+      lower: -3.141592653589793
+      upper: 3.141592653589793
+
+    - name: joint_3
+      type: revolute
+      alpha: 0
+      a: 1
+      theta: 0
+      d: 0.0
+      limited: true
+      lower: -3.141592653589793
+      upper: 3.141592653589793
+
+    - name: joint_4
+      type: revolute
+      alpha: 0
+      a: 1
+      theta: 0
+      d: 0.0
+      limited: true
+      lower: -3.141592653589793
+      upper: 3.141592653589793

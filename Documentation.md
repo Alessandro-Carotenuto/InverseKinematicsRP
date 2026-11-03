@@ -48,6 +48,8 @@ prismatic: d_effettivo     = d_yaml + q
 
 La FK costruisce le matrici DH configurate e le moltiplica nell’ordine della catena.
 
+Il campo facoltativo robot.base.rpy specifica roll, pitch e yaw in radianti e viene applicato prima della catena DH. Nei modelli con suffisso Planar e giunti prismatici, robot.base.rpy orienta la base in modo che anche il primo asse P giaccia nel piano XY.
+
 ## Modello URDF
 
 `URDFModel::FromFile(path, base_link, tool_link)` usa `urdfdom` per analizzare il file XML. Il parser risale dal tool verso la base, raccoglie i giunti parent e poi inverte la sequenza per ottenere l’ordine base-tool.
@@ -107,13 +109,67 @@ ros2 service call /EE_pos_update std_srvs/srv/Trigger "{}"
 
 I percorsi del nodo sono relativi alla directory di lavoro: avviare il processo dalla root del workspace.
 
-## Modelli presenti e attività rimanenti
+## Visualizzazione in RViz
 
-I modelli correnti sono `3R-Planar-DH.yaml` e `3R-Planar-URDF.urdf`. Entrambi rappresentano tre giunti revolute planari e tre link di lunghezza unitaria. I file dichiarano limiti `[-π, π]`, inseriti come valori del modello d’esempio; il solver non li applica come vincoli durante l’iterazione.
+La catena di visualizzazione è:
 
-Per il 3R planare la coordinata z dell’end-effector è sempre zero. Il file target presente in repository contiene attualmente `z: 0.10`, che non è raggiungibile con questi due modelli; usare `z: 0.0` per una richiesta planare raggiungibile.
+~~~text
+URDF con geometrie visuali + /joint_states
+                 |
+                 v
+       robot_state_publisher
+                 |
+              /tf, /tf_static
+                 |
+                 v
+          RViz RobotModel
+~~~
 
-Le attività che restano per lo scopo attuale sono:
+Gli URDF in Robots contengono link e joint, ma i link sono privi di elementi visual. Aggiungere una sezione visual con una geometria (box, cylinder o mesh) a ogni link che deve apparire. RViz usa la descrizione URDF e le trasformazioni TF per disegnare i link.
 
-- aggiungere altri modelli di robot in formato DH e/o URDF;
-- aggiungere la visualizzazione del manipolatore, includendo la pubblicazione dello stato dei giunti e l’integrazione con TF/RViz.
+Per una prova manuale:
+
+1. Avviare robot_state_publisher con il parametro robot_description caricato dal file URDF.
+2. Avviare joint_state_publisher_gui: legge la descrizione e pubblica sensor_msgs/msg/JointState su /joint_states con i valori degli slider.
+3. Avviare rviz2, impostare Fixed Frame a base_link e aggiungere RobotModel.
+
+Comandi di esempio, dalla root del workspace, usando RRP-flv:
+~~~bash
+source /opt/ros/jazzy/setup.bash
+ros2 run robot_state_publisher robot_state_publisher --ros-args -p robot_description:="$(cat src/manipulator_ik/Robots/RRP-flv-URDF.urdf)"
+~~~
+
+In altri terminali:
+~~~bash
+source /opt/ros/jazzy/setup.bash
+ros2 run joint_state_publisher_gui joint_state_publisher_gui
+~~~
+
+~~~bash
+source /opt/ros/jazzy/setup.bash
+rviz2
+~~~
+
+Il service EE_pos_update oggi calcola la configurazione e la stampa soltanto nei log. Per visualizzare quella configurazione, ManipulatorIKNode deve pubblicare un sensor_msgs/msg/JointState su /joint_states, compilato con i nomi dei giunti e joint_configuration. Aggiungere sensor_msgs come dipendenza in package.xml e CMakeLists.txt. robot_state_publisher usa il messaggio per aggiornare TF; RViz aggiorna quindi il display RobotModel. Non usare insieme questo publisher e joint_state_publisher_gui, che pubblicherebbe altri valori sullo stesso topic.
+
+La sequenza può poi essere raccolta in un launch file con i parametri robot_description, il nodo IK, robot_state_publisher e RViz.
+
+## Modelli presenti
+
+Ogni robot è disponibile come file YAML DH e come URDF nella directory src/manipulator_ik/Robots. Il suffisso -DH seleziona il file YAML; -URDF seleziona l’URDF. Le catene URDF usano base_link e tool0, come richiesto dal nodo.
+
+| Robot | Sequenza | Piano |
+|---|---|---|
+| 2R-Planar | R-R | XY |
+| 4R-Planar | R-R-R-R | XY |
+| PR-Planar | P-R | XY |
+| PRR-Planar | P-R-R | XY |
+| PPR-Planar | P-P-R | XY |
+| 3P-Planar | P-P-P | XY |
+| RPR-Planar | R-P-R | XY |
+| 3R-Planar | R-R-R | XY |
+| RRP-flv | R-R-P | spaziale |
+
+I giunti revolute hanno limiti d’esempio [-π, π]; i prismatici [-1, 1] metri. La IK corrente dichiara ma non applica i limiti come vincoli durante ogni iterazione. I modelli con suffisso Planar restano nel piano XY e hanno z dell end-effector pari a zero. RRP-flv è spaziale.
+
+Restano da aggiungere le geometrie visuali agli URDF e la pubblicazione di JointState dal nodo IK, con una configurazione RViz e un launch file per avviare i nodi insieme.

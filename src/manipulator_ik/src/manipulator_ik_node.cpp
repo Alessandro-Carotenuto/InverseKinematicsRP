@@ -47,7 +47,7 @@ class ManipulatorIKNode : public rclcpp::Node
 
             for (int i = 0; i < joint_configuration.size(); ++i)
             {
-                RCLCPP_INFO(get_logger(), "  %s: %.4f rad",model_->getJointName(i).c_str(),joint_configuration(i));
+                RCLCPP_INFO(get_logger(), "  %s: %.4f %s", model_->getJointName(i).c_str(), joint_configuration(i), model_->isJointRevolute(i) ? "rad" : "m");
             }
 
         }

@@ -12,10 +12,12 @@ class DHModel : public KinematicModel
         std::vector<DHMatrix> DHList;
         std::vector<double> JointOffsets;
         std::vector<std::string> JointNames;
+        Eigen::Matrix4d BaseTransform = Eigen::Matrix4d::Identity();
 
         DHModel(const std::vector<DHMatrix>& dh_list,
                 const std::vector<double>& joint_offsets,
-                const std::vector<std::string>& joint_names);
+                const std::vector<std::string>& joint_names,
+                const Eigen::Matrix4d& base_transform);
 
     public:
         DHModel(const std::vector<DHMatrix>& dh_list);
