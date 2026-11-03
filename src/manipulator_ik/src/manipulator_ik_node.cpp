@@ -10,6 +10,7 @@
 #include <functional>
 #include <filesystem>
 #include <memory>
+#include <vector>
 #include <string>
 
 class ManipulatorIKNode : public rclcpp::Node
@@ -18,7 +19,7 @@ class ManipulatorIKNode : public rclcpp::Node
         std::string target_position_file_path_ = "src/manipulator_ik/src/targetPosition.yaml";
         Eigen::VectorXd joint_configuration;
 
-        void update_target_position(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+        void update_target_position(
                 std::shared_ptr<std_srvs::srv::Trigger::Response> response)
         {
             YAML::Node root = YAML::LoadFile(target_position_file_path_);
@@ -33,26 +34,20 @@ class ManipulatorIKNode : public rclcpp::Node
 
             response->success = ik_success_flag;
 
-            switch (response->success)
+            if (response->success)
             {
-                case true:
-                    response->message = "Target raggiunto";
-                    break;
-                case false:
-                    response->message = "Target non raggiunto entro la tolleranza";
-                    break;
-                default:
-                    break;
+                response->message = "Target raggiunto";
+            }
+            else
+            {
+                response->message = "Target non raggiunto entro la tolleranza";
             }
 
             RCLCPP_INFO(get_logger(), "IK: %s",ik_success_flag ? "convergente" : "non convergente");
 
             for (int i = 0; i < joint_configuration.size(); ++i)
             {
-                RCLCPP_INFO(
-                    get_logger(), "  %s: %.4f rad",
-                    model_->getJointName(i).c_str(),
-                    joint_configuration(i));
+                RCLCPP_INFO(get_logger(), "  %s: %.4f rad",model_->getJointName(i).c_str(),joint_configuration(i));
             }
 
         }
@@ -62,13 +57,10 @@ class ManipulatorIKNode : public rclcpp::Node
         std::string model_file_extension_;
         std::unique_ptr<KinematicModel> model_;
 
-
-
-    public:
-        ManipulatorIKNode(const std::string model_file_) : Node("manipulator_ik")
+        void load_model(const std::string model_file_)
         {
             //search the model file by name
-            for (const auto file : std::filesystem::directory_iterator(robots_directory_))
+            for (const auto& file : std::filesystem::directory_iterator(robots_directory_))
             {
                 std::string temp_filename = file.path().stem().string();
                 if (temp_filename == model_file_)
@@ -89,12 +81,26 @@ class ManipulatorIKNode : public rclcpp::Node
                 model_ = std::make_unique<URDFModel>(URDFModel::FromFile(model_file_path_, "base_link", "tool0"));
             }
 
+        }
+    
+        void on_model_name_change(const std::vector<rclcpp::Parameter>&)
+        {
+            load_model(this->get_parameter("model_name").as_string());
+        }
 
+    public:
+        ManipulatorIKNode(const std::string model_file_) : Node("manipulator_ik")
+        {
 
-            update_service_ = this->create_service<std_srvs::srv::Trigger>("EE_pos_update",std::bind(&ManipulatorIKNode::update_target_position,this,std::placeholders::_1,std::placeholders::_2));
+            const auto model_name = this->declare_parameter<std::string>("model_name", model_file_);
+            load_model(model_name);
+
+            model_name_callback_handle_ = this->add_post_set_parameters_callback(std::bind(&ManipulatorIKNode::on_model_name_change,this, std::placeholders::_1));
+            update_eepos_service_ = this->create_service<std_srvs::srv::Trigger>("EE_pos_update",std::bind(&ManipulatorIKNode::update_target_position,this,std::placeholders::_2));
             RCLCPP_INFO(get_logger(),"Manipulator IK node started");
         }
-        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr update_service_;
+        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr update_eepos_service_;
+        rclcpp::node_interfaces::PostSetParametersCallbackHandle::SharedPtr model_name_callback_handle_;
 };
 
 int main(int argc, char* argv[])
