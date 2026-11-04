@@ -1,5 +1,6 @@
 robot:
   name: "3R-Planar-DH"
+  ik_mode: ONLY_POSITION
   joints:
     - name: joint_1
       type: revolute

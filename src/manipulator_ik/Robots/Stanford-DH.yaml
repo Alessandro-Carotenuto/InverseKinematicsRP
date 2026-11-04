@@ -1,0 +1,66 @@
+robot:
+  name: "Stanford-DH"
+  ik_mode: FULL_POSE
+  tool:
+    xyz: [0.0, 0.0, 0.263]
+    rpy: [0.0, 0.0, 0.0]
+  joints:
+    - name: joint_1
+      type: revolute
+      alpha: -1.5707963267948966
+      a: 0.0
+      theta: 0.0
+      d: 0.412
+      limited: true
+      lower: -2.9670597283903604
+      upper: 2.9670597283903604
+
+    - name: joint_2
+      type: revolute
+      alpha: 1.5707963267948966
+      a: 0.0
+      theta: 0.0
+      d: 0.154
+      limited: true
+      lower: -2.9670597283903604
+      upper: 2.9670597283903604
+
+    - name: joint_3
+      type: prismatic
+      alpha: 0.0
+      a: 0.0
+      theta: -1.5707963267948966
+      d: 0.0
+      limited: true
+      lower: 0.3048
+      upper: 1.27
+
+    - name: joint_4
+      type: revolute
+      alpha: -1.5707963267948966
+      a: 0.0
+      theta: 0.0
+      d: 0.0
+      limited: true
+      lower: -2.9670597283903604
+      upper: 2.9670597283903604
+
+    - name: joint_5
+      type: revolute
+      alpha: 1.5707963267948966
+      a: 0.0
+      theta: 0.0
+      d: 0.0
+      limited: true
+      lower: -1.5707963267948966
+      upper: 1.5707963267948966
+
+    - name: joint_6
+      type: revolute
+      alpha: 0.0
+      a: 0.0
+      theta: 0.0
+      d: 0.0
+      limited: true
+      lower: -2.9670597283903604
+      upper: 2.9670597283903604

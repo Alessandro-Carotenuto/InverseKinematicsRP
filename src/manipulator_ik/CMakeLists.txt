@@ -30,6 +30,7 @@ add_executable(manipulator_ik_node
 ament_target_dependencies(manipulator_ik_node rclcpp rcl_interfaces std_srvs sensor_msgs)
 target_link_libraries(manipulator_ik_node kinematics yaml-cpp::yaml-cpp)
 target_include_directories(kinematics PUBLIC include)
+target_compile_features(kinematics PUBLIC cxx_std_17)
 target_compile_features(manipulator_ik_node PRIVATE cxx_std_17)
 
 target_link_libraries(kinematics

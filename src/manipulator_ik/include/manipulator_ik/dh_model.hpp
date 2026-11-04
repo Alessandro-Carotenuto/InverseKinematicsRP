@@ -13,14 +13,19 @@ class DHModel : public KinematicModel
         std::vector<double> JointOffsets;
         std::vector<std::string> JointNames;
         Eigen::Matrix4d BaseTransform = Eigen::Matrix4d::Identity();
+        Eigen::Matrix4d ToolTransform = Eigen::Matrix4d::Identity();
+        IKTaskMode TaskMode = IKTaskMode::ONLY_POSITION;
 
         DHModel(const std::vector<DHMatrix>& dh_list,
                 const std::vector<double>& joint_offsets,
                 const std::vector<std::string>& joint_names,
-                const Eigen::Matrix4d& base_transform);
+                const Eigen::Matrix4d& base_transform,
+                const Eigen::Matrix4d& tool_transform,
+                IKTaskMode task_mode);
 
     public:
-        DHModel(const std::vector<DHMatrix>& dh_list);
+        DHModel(const std::vector<DHMatrix>& dh_list,
+                IKTaskMode task_mode = IKTaskMode::ONLY_POSITION);
         ~DHModel() override;
 
         static DHModel FromYAML(const std::string& path);
@@ -33,4 +38,5 @@ class DHModel : public KinematicModel
         double getJointMax(int index) const override;
         bool isJointLimited(int index) const override;
         std::string getJointName(int index) const override;
+        IKTaskMode getIKTaskMode() const override;
 };

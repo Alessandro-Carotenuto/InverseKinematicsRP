@@ -1,4 +1,8 @@
 position:
-  x: 1
-  y: 1
-  z: 0.4
+  x: -0.504754
+  y: -1.120867
+  z: 0.5
+orientation:
+  roll: -1.044158
+  pitch: -2.0
+  yaw: -3.135330

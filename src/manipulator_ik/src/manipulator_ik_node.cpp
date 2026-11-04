@@ -10,6 +10,7 @@
 #include "std_srvs/srv/trigger.hpp"
 
 #include <yaml-cpp/yaml.h>
+#include <Eigen/Geometry>
 #include <chrono>
 #include <exception>
 #include <filesystem>
@@ -43,9 +44,30 @@ private:
         double y = position["y"].as<double>();
         double z = position["z"].as<double>();
 
-        Eigen::Vector3d EE_Target_Position{x, y, z};
+        Eigen::Matrix4d TargetPose = Eigen::Matrix4d::Identity();
+        TargetPose.block<3, 1>(0, 3) = Eigen::Vector3d{x, y, z};
+
+        if (model_->getIKTaskMode() == IKTaskMode::FULL_POSE)
+        {
+            YAML::Node orientation = root["orientation"];
+            if (!orientation || !orientation.IsMap() ||
+                !orientation["roll"] || !orientation["pitch"] || !orientation["yaw"])
+            {
+                throw std::invalid_argument(
+                    "FULL_POSE model requires orientation.roll, orientation.pitch and orientation.yaw");
+            }
+
+            const double roll = orientation["roll"].as<double>();
+            const double pitch = orientation["pitch"].as<double>();
+            const double yaw = orientation["yaw"].as<double>();
+            TargetPose.block<3, 3>(0, 0) =
+                (Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ()) *
+                 Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
+                 Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX())).toRotationMatrix();
+        }
+
         bool ik_success_flag = false;
-        joint_configuration = Inverse_Kinematic(EE_Target_Position, *model_, ik_success_flag);
+        joint_configuration = Inverse_Kinematic(TargetPose, *model_, ik_success_flag);
 
         response->success = ik_success_flag;
 
@@ -156,7 +178,23 @@ private:
 
             const std::string urdf_xml{
                 std::istreambuf_iterator<char>{urdf_file}, std::istreambuf_iterator<char>{}};
-            model_ = std::make_unique<URDFModel>(URDFModel::FromFile(model_file_path_, "base_link", "tool0"));
+            IKTaskMode task_mode = IKTaskMode::ONLY_POSITION;
+            const std::string urdf_suffix = "-URDF";
+            if (model_file.size() >= urdf_suffix.size() &&
+                model_file.compare(model_file.size() - urdf_suffix.size(), urdf_suffix.size(), urdf_suffix) == 0)
+            {
+                const std::string dh_model_name =
+                    model_file.substr(0, model_file.size() - urdf_suffix.size()) + "-DH";
+                const std::filesystem::path dh_model_path =
+                    robots_directory_ / (dh_model_name + ".yaml");
+                if (std::filesystem::exists(dh_model_path))
+                {
+                    task_mode = DHModel::FromYAML(dh_model_path.string()).getIKTaskMode();
+                }
+            }
+
+            model_ = std::make_unique<URDFModel>(
+                URDFModel::FromFile(model_file_path_, "base_link", "tool0", task_mode));
             update_robot_description(urdf_xml);
             return true;
         }

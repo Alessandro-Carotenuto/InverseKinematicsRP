@@ -1,0 +1,101 @@
+<?xml version="1.0"?>
+<robot name="Stanford-URDF">
+  <material name="white"><color rgba="1 1 1 1" /></material>
+  <material name="orange"><color rgba="1 0.45 0 1" /></material>
+  <material name="blue"><color rgba="0.35 0.55 0.75 1" /></material>
+
+  <link name="base_link">
+    <visual><origin xyz="0 0 -0.05" rpy="0 0 0" /><geometry><box size="0.2 0.2 0.1" /></geometry><material name="orange" /></visual>
+  </link>
+
+  <joint name="joint_1" type="revolute">
+    <parent link="base_link" /><child link="link_1" />
+    <origin xyz="0 0 0.412" rpy="0 0 0" /><axis xyz="0 0 1" />
+    <limit lower="-2.9670597283903604" upper="2.9670597283903604" effort="10" velocity="1" />
+  </joint>
+  <link name="link_1">
+    <visual><origin xyz="0 0 -0.18" rpy="0 0 0" /><geometry><cylinder radius="0.05" length="0.36" /></geometry><material name="white" /></visual>
+  </link>
+  <joint name="joint_1_dh_twist" type="fixed">
+    <parent link="link_1" /><child link="frame_1" />
+    <origin xyz="0 0 0" rpy="-1.5707963267948966 0 0" />
+  </joint>
+  <link name="frame_1">
+    <visual><origin xyz="0 0 0" rpy="0 0 0" /><geometry><box size="0.14 0.14 0.14" /></geometry><material name="white" /></visual>
+  </link>
+
+  <joint name="joint_2" type="revolute">
+    <parent link="frame_1" /><child link="link_2" />
+    <origin xyz="0 0 0.154" rpy="0 0 0" /><axis xyz="0 0 1" />
+    <limit lower="-2.9670597283903604" upper="2.9670597283903604" effort="10" velocity="1" />
+  </joint>
+  <link name="link_2">
+    <visual><origin xyz="0 0 0.077" rpy="0 0 0" /><geometry><cylinder radius="0.045" length="0.154" /></geometry><material name="white" /></visual>
+  </link>
+  <joint name="joint_2_dh_twist" type="fixed">
+    <parent link="link_2" /><child link="frame_2" />
+    <origin xyz="0 0 0" rpy="1.5707963267948966 0 0" />
+  </joint>
+  <link name="frame_2">
+    <visual><origin xyz="0 0 0" rpy="0 0 0" /><geometry><box size="0.12 0.12 0.12" /></geometry><material name="white" /></visual>
+    <visual><origin xyz="0 0 0.55" rpy="0 0 0" /><geometry><cylinder radius="0.035" length="1.1" /></geometry><material name="white" /></visual>
+  </link>
+
+  <joint name="joint_3" type="prismatic">
+    <parent link="frame_2" /><child link="link_3" />
+    <origin xyz="0 0 0" rpy="0 0 -1.5707963267948966" /><axis xyz="0 0 1" />
+    <limit lower="0.3048" upper="1.27" effort="100" velocity="1" />
+  </joint>
+  <link name="link_3">
+    <visual><origin xyz="0 0 0.15" rpy="0 0 0" /><geometry><cylinder radius="0.055" length="0.3" /></geometry><material name="blue" /></visual>
+  </link>
+
+  <joint name="joint_4" type="revolute">
+    <parent link="link_3" /><child link="link_4" />
+    <origin xyz="0 0 0" rpy="0 0 0" /><axis xyz="0 0 1" />
+    <limit lower="-2.9670597283903604" upper="2.9670597283903604" effort="10" velocity="1" />
+  </joint>
+  <link name="link_4">
+    <visual><origin xyz="0 0 0" rpy="0 0 0" /><geometry><box size="0.12 0.12 0.12" /></geometry><material name="white" /></visual>
+  </link>
+  <joint name="joint_4_dh_twist" type="fixed">
+    <parent link="link_4" /><child link="frame_4" />
+    <origin xyz="0 0 0" rpy="-1.5707963267948966 0 0" />
+  </joint>
+  <link name="frame_4">
+    <visual><origin xyz="0 0 0" rpy="0 0 0" /><geometry><box size="0.1 0.1 0.1" /></geometry><material name="white" /></visual>
+  </link>
+
+  <joint name="joint_5" type="revolute">
+    <parent link="frame_4" /><child link="link_5" />
+    <origin xyz="0 0 0" rpy="0 0 0" /><axis xyz="0 0 1" />
+    <limit lower="-1.5707963267948966" upper="1.5707963267948966" effort="10" velocity="1" />
+  </joint>
+  <link name="link_5">
+    <visual><origin xyz="0 0 0" rpy="0 0 0" /><geometry><box size="0.1 0.1 0.1" /></geometry><material name="white" /></visual>
+  </link>
+  <joint name="joint_5_dh_twist" type="fixed">
+    <parent link="link_5" /><child link="frame_5" />
+    <origin xyz="0 0 0" rpy="1.5707963267948966 0 0" />
+  </joint>
+  <link name="frame_5">
+    <visual><origin xyz="0 0 0" rpy="0 0 0" /><geometry><box size="0.1 0.1 0.1" /></geometry><material name="white" /></visual>
+  </link>
+
+  <joint name="joint_6" type="revolute">
+    <parent link="frame_5" /><child link="link_6" />
+    <origin xyz="0 0 0" rpy="0 0 0" /><axis xyz="0 0 1" />
+    <limit lower="-2.9670597283903604" upper="2.9670597283903604" effort="5" velocity="1" />
+  </joint>
+  <link name="link_6">
+    <visual><origin xyz="0 0 0" rpy="0 0 0" /><geometry><sphere radius="0.06" /></geometry><material name="white" /></visual>
+  </link>
+  <joint name="tool0_fixed" type="fixed">
+    <parent link="link_6" /><child link="tool0" />
+    <origin xyz="0 0 0.263" rpy="0 0 0" />
+  </joint>
+  <link name="tool0">
+    <visual><origin xyz="0 0 -0.1315" rpy="0 0 0" /><geometry><cylinder radius="0.035" length="0.263" /></geometry><material name="orange" /></visual>
+    <visual><origin xyz="0 0 0" rpy="0 0 0" /><geometry><sphere radius="0.06" /></geometry><material name="orange" /></visual>
+  </link>
+</robot>

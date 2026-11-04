@@ -30,7 +30,8 @@ namespace
 }
 
 
-URDFModel::URDFModel(const std::vector<JointData>& joint_chain) : JointChain(joint_chain)
+URDFModel::URDFModel(const std::vector<JointData>& joint_chain, IKTaskMode task_mode)
+    : JointChain(joint_chain), TaskMode(task_mode)
 {
     for (std::size_t i=0; i<JointChain.size(); i++)
     {
@@ -49,7 +50,8 @@ URDFModel::~URDFModel()
 URDFModel URDFModel::FromFile(
     const std::string& path,
     const std::string& base_link,
-    const std::string& tool_link)
+    const std::string& tool_link,
+    IKTaskMode task_mode)
 {
     // urdfdom opens the file and converts its XML into a ModelInterface object.
     // ModelInterface contains the complete link and joint tree of the robot.
@@ -172,7 +174,7 @@ URDFModel URDFModel::FromFile(
         JointChain.push_back(Joint);
     }
 
-    return URDFModel(JointChain);
+    return URDFModel(JointChain, task_mode);
 }
 
 Eigen::Matrix4d URDFModel::ForwardKinematics(const Eigen::VectorXd& q) const
@@ -252,4 +254,9 @@ bool URDFModel::isJointLimited(int index) const
 std::string URDFModel::getJointName(int index) const
 {
     return getActiveJoint(index).name;
+}
+
+IKTaskMode URDFModel::getIKTaskMode() const
+{
+    return TaskMode;
 }

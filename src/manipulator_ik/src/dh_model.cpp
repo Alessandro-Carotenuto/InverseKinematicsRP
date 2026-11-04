@@ -5,8 +5,8 @@
 #include <yaml-cpp/yaml.h>
 
 
-DHModel::DHModel(const std::vector<DHMatrix>& dh_list)
-    : DHList(dh_list), JointOffsets(dh_list.size(), 0.0), JointNames(dh_list.size())
+DHModel::DHModel(const std::vector<DHMatrix>& dh_list, IKTaskMode task_mode)
+    : DHList(dh_list), JointOffsets(dh_list.size(), 0.0), JointNames(dh_list.size()), TaskMode(task_mode)
 {
 
 }
@@ -14,8 +14,11 @@ DHModel::DHModel(const std::vector<DHMatrix>& dh_list)
 DHModel::DHModel(const std::vector<DHMatrix>& dh_list,
                  const std::vector<double>& joint_offsets,
                  const std::vector<std::string>& joint_names,
-                 const Eigen::Matrix4d& base_transform)
-    : DHList(dh_list), JointOffsets(joint_offsets), JointNames(joint_names), BaseTransform(base_transform)
+                 const Eigen::Matrix4d& base_transform,
+                 const Eigen::Matrix4d& tool_transform,
+                 IKTaskMode task_mode)
+    : DHList(dh_list), JointOffsets(joint_offsets), JointNames(joint_names),
+      BaseTransform(base_transform), ToolTransform(tool_transform), TaskMode(task_mode)
 {
     if (DHList.size() != JointOffsets.size() || DHList.size() != JointNames.size())
     {
@@ -57,6 +60,56 @@ DHModel DHModel::FromYAML(const std::string& path)
                  Eigen::AngleAxisd(Pitch, Eigen::Vector3d::UnitY()) *
                  Eigen::AngleAxisd(Roll, Eigen::Vector3d::UnitX())).toRotationMatrix();
         }
+        Eigen::Matrix4d ToolTransform = Eigen::Matrix4d::Identity();
+        YAML::Node Tool = Robot["tool"];
+        if (Tool)
+        {
+            Eigen::Vector3d Translation = Eigen::Vector3d::Zero();
+            Eigen::Vector3d RPY = Eigen::Vector3d::Zero();
+
+            YAML::Node XYZ = Tool["xyz"];
+            if (XYZ)
+            {
+                if (!XYZ.IsSequence() || XYZ.size() != 3)
+                {
+                    throw std::invalid_argument("robot.tool.xyz must contain [x, y, z]");
+                }
+                Translation = Eigen::Vector3d(
+                    XYZ[0].as<double>(), XYZ[1].as<double>(), XYZ[2].as<double>());
+            }
+
+            YAML::Node ToolRPY = Tool["rpy"];
+            if (ToolRPY)
+            {
+                if (!ToolRPY.IsSequence() || ToolRPY.size() != 3)
+                {
+                    throw std::invalid_argument("robot.tool.rpy must contain [roll, pitch, yaw]");
+                }
+                RPY = Eigen::Vector3d(
+                    ToolRPY[0].as<double>(), ToolRPY[1].as<double>(), ToolRPY[2].as<double>());
+            }
+
+            ToolTransform.block<3, 3>(0, 0) =
+                (Eigen::AngleAxisd(RPY.z(), Eigen::Vector3d::UnitZ()) *
+                 Eigen::AngleAxisd(RPY.y(), Eigen::Vector3d::UnitY()) *
+                 Eigen::AngleAxisd(RPY.x(), Eigen::Vector3d::UnitX())).toRotationMatrix();
+            ToolTransform.block<3, 1>(0, 3) = Translation;
+        }
+
+        IKTaskMode TaskMode = IKTaskMode::ONLY_POSITION;
+        if (Robot["ik_mode"])
+        {
+            const std::string Mode = Robot["ik_mode"].as<std::string>();
+            if (Mode == "FULL_POSE")
+            {
+                TaskMode = IKTaskMode::FULL_POSE;
+            }
+            else if (Mode != "ONLY_POSITION")
+            {
+                throw std::invalid_argument("robot.ik_mode must be ONLY_POSITION or FULL_POSE");
+            }
+        }
+
         std::vector<DHMatrix> DHList;
         std::vector<double> JointOffsets;
         std::vector<std::string> JointNames;
@@ -135,7 +188,8 @@ DHModel DHModel::FromYAML(const std::string& path)
             JointNames.push_back(Name);
         }
 
-        return DHModel(DHList, JointOffsets, JointNames, BaseTransform);
+        return DHModel(
+            DHList, JointOffsets, JointNames, BaseTransform, ToolTransform, TaskMode);
     }
     catch (const YAML::Exception& error)
     {
@@ -174,7 +228,7 @@ Eigen::Matrix4d DHModel::ForwardKinematics(const Eigen::VectorXd& q) const
         }
     }
 
-    return BaseTransform * ::ForwardKinematics(ConfiguredDHList);
+    return BaseTransform * ::ForwardKinematics(ConfiguredDHList) * ToolTransform;
 }
 
 int DHModel::getDOF() const
@@ -210,4 +264,9 @@ std::string DHModel::getJointName(int index) const
     }
 
     return JointNames[static_cast<std::size_t>(index)];
+}
+
+IKTaskMode DHModel::getIKTaskMode() const
+{
+    return TaskMode;
 }

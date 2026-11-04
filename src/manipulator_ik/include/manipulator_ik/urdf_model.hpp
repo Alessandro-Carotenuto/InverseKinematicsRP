@@ -30,15 +30,17 @@ class URDFModel : public KinematicModel
 
         std::vector<JointData> JointChain;
         std::vector<std::size_t> ActiveJointIndices;
+        IKTaskMode TaskMode = IKTaskMode::ONLY_POSITION;
 
-        URDFModel(const std::vector<JointData>& joint_chain);
+        URDFModel(const std::vector<JointData>& joint_chain, IKTaskMode task_mode);
         const JointData& getActiveJoint(int index) const;
 
     public:
         static URDFModel FromFile(
             const std::string& path,
             const std::string& base_link,
-            const std::string& tool_link);
+            const std::string& tool_link,
+            IKTaskMode task_mode = IKTaskMode::ONLY_POSITION);
 
         ~URDFModel() override;
 
@@ -50,4 +52,5 @@ class URDFModel : public KinematicModel
         double getJointMax(int index) const override;
         bool isJointLimited(int index) const override;
         std::string getJointName(int index) const override;
+        IKTaskMode getIKTaskMode() const override;
 };

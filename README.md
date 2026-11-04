@@ -1,6 +1,6 @@
 # InverseKinematicsRP
 
-Implementazione in C++ di cinematica diretta e inversa per manipolatori descritti con parametri DH in YAML oppure con URDF. Il progetto include una libreria cinematica e un nodo ROS 2 che carica un modello all’avvio, legge un target cartesiano da YAML quando viene chiamato un service e stampa la configurazione calcolata.
+Implementazione in C++ di cinematica diretta e inversa per manipolatori descritti con parametri DH in YAML oppure con URDF. Il progetto include una libreria cinematica e un nodo ROS 2 che carica un modello all’avvio, legge un target di posizione o posa da YAML quando viene chiamato un service e stampa la configurazione calcolata.
 
 La descrizione tecnica è in [Documentation.md](Documentation.md).
 
@@ -8,10 +8,10 @@ La descrizione tecnica è in [Documentation.md](Documentation.md).
 
 - `DHModel` carica i parametri DH da YAML; `URDFModel` ricava la catena da un file URDF tramite `urdfdom`.
 - Entrambi implementano `KinematicModel` e forniscono la Forward Kinematics.
-- Il Jacobiano lineare è calcolato numericamente perturbando una coordinata alla volta.
+- I Jacobiani di posizione e orientamento sono calcolati numericamente perturbando una coordinata alla volta.
 - La pseudoinversa del Jacobiano usa la SVD di Eigen.
-- La IK aggiorna iterativamente la configurazione e controlla la convergenza sulla posizione cartesiana dell’end-effector.
-- Dopo ogni aggiornamento, gli angoli dei giunti rotativi sono normalizzati in `[-π, π]`; le coordinate prismatiche non vengono normalizzate.
+- La IK aggiorna iterativamente la configurazione: `ONLY_POSITION` controlla XYZ, mentre `FULL_POSE` controlla posizione e orientamento.
+- Dopo ogni aggiornamento, gli angoli rotativi vengono riportati in `[-π, π]` e tutti i giunti limitati vengono vincolati ai rispettivi limiti.
 - Il nodo ROS 2 carica un modello DH o URDF all’avvio e offre il service `EE_pos_update`.
 - Il service rilegge `targetPosition.yaml`, calcola la IK e restituisce lo stato tramite `std_srvs/srv/Trigger`; configurazione e convergenza sono anche stampate nei log.
 
@@ -25,9 +25,9 @@ Per ogni robot sono disponibili entrambe le descrizioni: parametri DH in YAML e 
 | 3R-Planar | R-R-R | XY |
 | SCARA | R-R-P-R | XY + Z |
 | RRP-flv | R-R-P | spaziale |
-| 6doF-flv | R-R-R-R-P-R (5R1P) | spaziale |
+| Stanford | R-R-P-R-R-R | spaziale, posa completa |
 
-I file sono in src/manipulator_ik/Robots e si selezionano passando al nodo il nome del robot e il suffisso -DH o -URDF, senza estensione. I modelli Planar lavorano nel piano XY; SCARA lavora in XY con corsa verticale verso il basso; RRP-flv e 6doF-flv sono spaziali. In 6doF-flv, J1 ruota attorno a Z, J2 e J3 fanno il pitch, J4 ruota attorno all’asse del link precedente, J5 estende il telescopio di 0–0.25 m e J6 inclina il tool. In SCARA, J1 e J2 ruotano attorno a Z, J3 estende verso il basso la colonna telescopica da 0 a 0.25 m e J4 ruota attorno a Z. Il TCP (tool0) si trova alla punta dello stelo, con quota Z tra 0.25 e 0.50 m. Ogni modello dichiara i limiti dei propri giunti; l’IK applica i limiti dichiarati ai giunti prismatici.
+I file sono in `src/manipulator_ik/Robots` e si selezionano passando al nodo il nome del robot e il suffisso `-DH` o `-URDF`, senza estensione. Il campo `robot.ik_mode` nel file DH dichiara `ONLY_POSITION` o `FULL_POSE`; il file URDF associato eredita la stessa modalità. 2R-Planar, 3R-Planar, SCARA e RRP-flv risolvono XYZ. Stanford è il modello classico R-R-P-R-R-R e risolve anche l’orientamento del TCP. In SCARA J1 e J2 ruotano attorno a Z, J3 estende verso il basso da 0 a 0.25 m e J4 ruota attorno a Z. Ogni modello dichiara i limiti dei propri giunti, applicati dall’IK.
 
 ## Build e avvio
 
@@ -58,6 +58,10 @@ position:
   x: 2.0
   y: 0.1
   z: 0.0
+orientation:
+  roll: 0.0
+  pitch: 0.0
+  yaw: 0.0
 ```
 
 Con il nodo attivo, da un secondo terminale richiamare il service:
@@ -69,9 +73,9 @@ source install/setup.bash
 ros2 service call /EE_pos_update std_srvs/srv/Trigger "{}"
 ```
 
-Ogni chiamata rilegge il file. Dopo aver modificato le coordinate, richiamare il service per ricalcolare la configurazione.
+Ogni chiamata rilegge il file. Dopo aver modificato il target, richiamare il service per ricalcolare la configurazione. I modelli `ONLY_POSITION` usano soltanto `position`; per Stanford (`FULL_POSE`) `orientation` è obbligatoria e gli angoli RPY sono in radianti.
 
-> **Nota sul modello planare:** i modelli 3R d’esempio hanno tutti gli assi di rotazione lungo z e mantengono l’end-effector nel piano `z = 0`. Un target con `z` diverso da zero non è raggiungibile. Il `targetPosition.yaml` presente nel repository al momento della documentazione riporta `z: 0.10`; impostarlo a `0.0` per una richiesta raggiungibile dal modello planare.
+> **Nota sui modelli planari:** i modelli 3R d’esempio hanno tutti gli assi di rotazione lungo z e mantengono l’end-effector nel piano `z = 0`. Un target con `z` diverso da zero non è raggiungibile.
 
 ## Visualizzazione con RViz
 
@@ -107,8 +111,53 @@ In RViz imposta Fixed Frame su base_link e aggiungi il display RobotModel. La GU
 
 Il nodo manipulator_ik_node pubblica la configurazione su /joint_states quando l’IK converge. Con robot_state_publisher attivo e la descrizione URDF aggiornata, RViz segue i nuovi stati. Usa joint_state_publisher_gui solo per la prova manuale, non insieme al publisher del nodo.
 
+### Procedura per visualizzare la IK in RViz
+
+Per usare la procedura interattiva, apri RViz in un terminale:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+rviz2
+```
+
+In un secondo terminale avvia `robot_state_publisher` con un URDF di esempio. Qui viene usato RRP-flv; il nodo IK sostituirà poi questa descrizione con quella del modello scelto:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+ros2 run robot_state_publisher robot_state_publisher --ros-args -p robot_description:="$(cat ~/InverseKinematicsRP/src/manipulator_ik/Robots/RRP-flv-URDF.urdf)"
+```
+
+In RViz imposta `Fixed Frame` su `base_link`, aggiungi il display `RobotModel` e scegli `Topic` come sorgente della descrizione, con topic `/robot_description`.
+
+In un terzo terminale carica l’ambiente ROS e il workspace, poi avvia il nodo con il modello desiderato:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ~/InverseKinematicsRP/install/setup.bash
+ros2 run manipulator_ik manipulator_ik_node SCARA-URDF
+```
+
+Il nodo carica SCARA-URDF e aggiorna il parametro `robot_description` di `robot_state_publisher`; RViz mostra quindi il modello selezionato e gli stati articolari pubblicati su `/joint_states`.
+
+Per calcolare la configurazione del target corrente, chiama il service da un altro terminale con ROS e workspace caricati:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ~/InverseKinematicsRP/install/setup.bash
+ros2 service call /EE_pos_update std_srvs/srv/Trigger "{}"
+```
+
+Il service rilegge `src/manipulator_ik/src/targetPosition.yaml` a ogni chiamata: puoi modificare il target e richiamarlo tutte le volte che vuoi. Per cambiare modello senza riavviare il nodo, usa il parametro `model_name`, ad esempio:
+
+```bash
+ros2 param set /manipulator_ik model_name RRP-flv-URDF
+```
+
+Il nodo aggiorna anche la descrizione URDF in `robot_state_publisher`; puoi poi richiamare il service per calcolare la IK sul nuovo modello.
+
 ## Limiti attuali e lavoro rimanente
 
-- La IK risolve la posizione dell’end-effector, non l’orientamento.
+- 2R-Planar, 3R-Planar, SCARA e RRP-flv risolvono la posizione; Stanford risolve la posa completa entro il proprio spazio di lavoro.
 - Il nodo pubblica la configurazione su /joint_states quando l’IK converge.
 - Restano da creare un launch file e una configurazione RViz per avviare i nodi insieme.
+- Rivedere codice per `NaiveSeed()`

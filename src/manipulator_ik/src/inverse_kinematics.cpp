@@ -2,6 +2,7 @@
 #include "manipulator_ik/dh_model.hpp"
 #include "manipulator_ik/forward_kinematics.hpp"
 
+#include <Eigen/Geometry>
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -10,6 +11,59 @@ namespace
 {
     constexpr double Pi = 3.14159265358979323846;
     constexpr double TwoPi = 6.28318530717958647692;
+    constexpr double OrientationLengthScale = 0.25;
+    constexpr double OrientationTolerance = 1e-3;
+
+    Eigen::Vector3d RotationVectorError(
+        const Eigen::Matrix3d& Target_Rotation,
+        const Eigen::Matrix3d& Current_Rotation)
+    {
+        const Eigen::Matrix3d Delta_Rotation = Target_Rotation * Current_Rotation.transpose();
+        const Eigen::AngleAxisd Angle_Axis(Delta_Rotation);
+        if (std::abs(Angle_Axis.angle()) < 1e-12)
+        {
+            return Eigen::Vector3d::Zero();
+        }
+        return Angle_Axis.axis() * Angle_Axis.angle();
+    }
+
+    double TaskErrorMagnitude(
+        const Eigen::Matrix4d& Target_Pose,
+        const Eigen::Matrix4d& Current_Pose,
+        const IKTaskMode Task_Mode)
+    {
+        const Eigen::Vector3d Position_Error =
+            Target_Pose.block<3, 1>(0, 3) - Current_Pose.block<3, 1>(0, 3);
+        if (Task_Mode == IKTaskMode::ONLY_POSITION)
+        {
+            return Position_Error.norm();
+        }
+
+        const Eigen::Vector3d Orientation_Error = RotationVectorError(
+            Target_Pose.block<3, 3>(0, 0), Current_Pose.block<3, 3>(0, 0));
+        return std::sqrt(
+            Position_Error.squaredNorm() +
+            OrientationLengthScale * OrientationLengthScale * Orientation_Error.squaredNorm());
+    }
+
+    bool TaskConverged(
+        const Eigen::Matrix4d& Target_Pose,
+        const Eigen::Matrix4d& Current_Pose,
+        const IKTaskMode Task_Mode,
+        const double Position_Tolerance)
+    {
+        const Eigen::Vector3d Position_Error =
+            Target_Pose.block<3, 1>(0, 3) - Current_Pose.block<3, 1>(0, 3);
+        if (Position_Error.norm() >= Position_Tolerance)
+        {
+            return false;
+        }
+
+        return Task_Mode == IKTaskMode::ONLY_POSITION ||
+            RotationVectorError(
+                Target_Pose.block<3, 3>(0, 0), Current_Pose.block<3, 3>(0, 0)).norm() <
+                OrientationTolerance;
+    }
 }
 
 
@@ -45,11 +99,12 @@ Eigen::MatrixXd Pseudo_Inverse(Eigen::MatrixXd& Jacobian, double tolerance)
 
 
 Eigen::VectorXd NaiveSeedGeneratorForIK(
-    const Eigen::Vector3d& Target_Position,
+    const Eigen::Matrix4d& Target_Pose,
     const KinematicModel& Model,
     const double tol,
     const int max_sweeps)
 {
+    const IKTaskMode task_mode = Model.getIKTaskMode();
     const int joint_count = Model.getDOF();
     Eigen::VectorXd Current_Guess = Eigen::VectorXd::Zero(joint_count);
     Eigen::VectorXd Step_Size = Eigen::VectorXd::Zero(joint_count);
@@ -75,9 +130,9 @@ Eigen::VectorXd NaiveSeedGeneratorForIK(
         }
     }
 
-    double Current_Error =
-        (Target_Position - Model.ForwardKinematics(Current_Guess).block<3, 1>(0, 3)).norm();
-    if (Current_Error < tol)
+    Eigen::Matrix4d Current_Pose = Model.ForwardKinematics(Current_Guess);
+    double Current_Error = TaskErrorMagnitude(Target_Pose, Current_Pose, task_mode);
+    if (TaskConverged(Target_Pose, Current_Pose, task_mode, tol))
     {
         return Current_Guess;
     }
@@ -123,9 +178,9 @@ Eigen::VectorXd NaiveSeedGeneratorForIK(
                     continue;
                 }
 
-                const Eigen::Vector3d Candidate_Position =
-                    Model.ForwardKinematics(Candidate).block<3, 1>(0, 3);
-                const double Candidate_Error = (Target_Position - Candidate_Position).norm();
+                const Eigen::Matrix4d Candidate_Pose = Model.ForwardKinematics(Candidate);
+                const double Candidate_Error =
+                    TaskErrorMagnitude(Target_Pose, Candidate_Pose, task_mode);
 
                 if (Candidate_Error + Improvement_Epsilon < Best_Error)
                 {
@@ -138,9 +193,10 @@ Eigen::VectorXd NaiveSeedGeneratorForIK(
             {
                 Current_Guess = Best_Candidate;
                 Current_Error = Best_Error;
+                Current_Pose = Model.ForwardKinematics(Current_Guess);
                 Improved_In_Sweep = true;
 
-                if (Current_Error < tol)
+                if (TaskConverged(Target_Pose, Current_Pose, task_mode, tol))
                 {
                     return Current_Guess;
                 }
@@ -158,6 +214,17 @@ Eigen::VectorXd NaiveSeedGeneratorForIK(
     }
 
     return Current_Guess;
+}
+
+Eigen::VectorXd NaiveSeedGeneratorForIK(
+    const Eigen::Vector3d& Target_Position,
+    const KinematicModel& Model,
+    const double tol,
+    const int max_sweeps)
+{
+    Eigen::Matrix4d Target_Pose = Eigen::Matrix4d::Identity();
+    Target_Pose.block<3, 1>(0, 3) = Target_Position;
+    return NaiveSeedGeneratorForIK(Target_Pose, Model, tol, max_sweeps);
 }
 
 //Helper Function
@@ -184,6 +251,156 @@ void ApplyJointConfiguration(std::vector<DHMatrix>& DHList, const Eigen::VectorX
     }
 }
 
+namespace
+{
+    struct IKAttempt
+    {
+        Eigen::VectorXd configuration;
+        bool converged;
+        double task_error;
+    };
+
+    IKAttempt RunIKFromSeed(
+        const Eigen::Matrix4d& Target_Pose,
+        const KinematicModel& Model,
+        Eigen::VectorXd Current_Guess,
+        const double tol,
+        const int max_it)
+    {
+        const IKTaskMode task_mode = Model.getIKTaskMode();
+        for (int iteration = 0; iteration < max_it; ++iteration)
+        {
+            const Eigen::Matrix4d Current_FK = Model.ForwardKinematics(Current_Guess);
+            const Eigen::Vector3d Position_Error =
+                Target_Pose.block<3, 1>(0, 3) - Current_FK.block<3, 1>(0, 3);
+            const Eigen::Vector3d Orientation_Error = RotationVectorError(
+                Target_Pose.block<3, 3>(0, 0), Current_FK.block<3, 3>(0, 0));
+
+            if (Position_Error.norm() < tol &&
+                (task_mode == IKTaskMode::ONLY_POSITION ||
+                 Orientation_Error.norm() < OrientationTolerance))
+            {
+                break;
+            }
+
+            Eigen::MatrixXd Jacobian;
+            Eigen::VectorXd Task_Error;
+            if (task_mode == IKTaskMode::FULL_POSE)
+            {
+                Jacobian = Jacobian_Pose(Model, Current_Guess, 1e-6, OrientationLengthScale);
+                Task_Error.resize(6);
+                Task_Error.head<3>() = Position_Error;
+                Task_Error.tail<3>() = OrientationLengthScale * Orientation_Error;
+            }
+            else
+            {
+                Jacobian = Jacobian_Linear(Model, Current_Guess);
+                Task_Error = Position_Error;
+            }
+
+            const Eigen::VectorXd Delta_Q = Pseudo_Inverse(Jacobian) * Task_Error;
+            Current_Guess += Delta_Q;
+
+            for (int i = 0; i < Model.getDOF(); ++i)
+            {
+                if (Model.isJointRevolute(i))
+                {
+                    Current_Guess(i) = std::remainder(Current_Guess(i), TwoPi);
+                }
+
+                if (Model.isJointLimited(i))
+                {
+                    Current_Guess(i) = std::clamp(
+                        Current_Guess(i), Model.getJointMin(i), Model.getJointMax(i));
+                }
+            }
+        }
+
+        const Eigen::Matrix4d Final_FK = Model.ForwardKinematics(Current_Guess);
+        return {
+            Current_Guess,
+            TaskConverged(Target_Pose, Final_FK, task_mode, tol),
+            TaskErrorMagnitude(Target_Pose, Final_FK, task_mode)};
+    }
+}
+
+Eigen::VectorXd Inverse_Kinematic(
+    const Eigen::Matrix4d& Target_Pose,
+    const KinematicModel& Model,
+    bool& Converged,
+    const double tol,
+    const int max_it)
+{
+    const IKTaskMode task_mode = Model.getIKTaskMode();
+    const Eigen::VectorXd seed = NaiveSeedGeneratorForIK(Target_Pose, Model, tol);
+    IKAttempt best_attempt = RunIKFromSeed(Target_Pose, Model, seed, tol, max_it);
+    if (best_attempt.converged || task_mode == IKTaskMode::ONLY_POSITION)
+    {
+        Converged = best_attempt.converged;
+        return best_attempt.configuration;
+    }
+
+    std::vector<int> revolute_joints;
+    for (int i = 0; i < Model.getDOF(); ++i)
+    {
+        if (Model.isJointRevolute(i))
+        {
+            revolute_joints.push_back(i);
+        }
+    }
+
+    if (revolute_joints.size() >= 3)
+    {
+        const int wrist_first = revolute_joints[revolute_joints.size() - 3];
+        const int wrist_middle = revolute_joints[revolute_joints.size() - 2];
+        const int wrist_last = revolute_joints[revolute_joints.size() - 1];
+
+        const auto joint_center = [&Model](const int joint)
+        {
+            if (!Model.isJointLimited(joint))
+            {
+                return 0.0;
+            }
+            return (Model.getJointMin(joint) + Model.getJointMax(joint)) / 2.0;
+        };
+        const auto quarter_range = [&Model](const int joint)
+        {
+            if (!Model.isJointLimited(joint))
+            {
+                return Pi / 4.0;
+            }
+            return (Model.getJointMax(joint) - Model.getJointMin(joint)) / 4.0;
+        };
+
+        for (int combination = 0; combination < 4; ++combination)
+        {
+            const double middle_sign = combination < 2 ? 1.0 : -1.0;
+            const double last_sign = combination % 2 == 0 ? 1.0 : -1.0;
+            Eigen::VectorXd alternate_seed = seed;
+            alternate_seed(wrist_first) = joint_center(wrist_first);
+            alternate_seed(wrist_middle) =
+                joint_center(wrist_middle) + middle_sign * quarter_range(wrist_middle);
+            alternate_seed(wrist_last) =
+                joint_center(wrist_last) + last_sign * quarter_range(wrist_last);
+
+            IKAttempt attempt = RunIKFromSeed(
+                Target_Pose, Model, alternate_seed, tol, max_it);
+            if (attempt.converged)
+            {
+                Converged = true;
+                return attempt.configuration;
+            }
+            if (attempt.task_error < best_attempt.task_error)
+            {
+                best_attempt = attempt;
+            }
+        }
+    }
+
+    Converged = best_attempt.converged;
+    return best_attempt.configuration;
+}
+
 Eigen::VectorXd Inverse_Kinematic(
     const Eigen::Vector3d& Target_Position,
     const KinematicModel& Model,
@@ -191,59 +408,9 @@ Eigen::VectorXd Inverse_Kinematic(
     const double tol,
     const int max_it)
 {
-    int nlinks = Model.getDOF();
-
-    Eigen::VectorXd Current_Guess = NaiveSeedGeneratorForIK(Target_Position, Model, tol);
-
-    int iterations=0;
-    Eigen::Matrix4d CurrentGuessFK;
-    Eigen::MatrixXd J;
-
-    Eigen::Vector3d error, CurrentGuessPOS;
-    Eigen::VectorXd delta_q;
-
-    do
-    {
-        // KinematicModel dispatches FK to DHModel or URDFModel without changing the solver.
-        CurrentGuessFK = Model.ForwardKinematics(Current_Guess);
-        CurrentGuessPOS = CurrentGuessFK.block<3, 1>(0, 3);
-        error = Target_Position - CurrentGuessPOS;
-
-        if (error.norm() < tol)
-        {
-            break;
-        }
-
-        J = Jacobian_Linear(Model, Current_Guess);
-        delta_q = Pseudo_Inverse(J)*error;
-        Current_Guess = Current_Guess+delta_q;
-        for (int i=0; i<nlinks; i++)
-        {
-            if (Model.isJointRevolute(i))
-            {
-                Current_Guess(i) = std::remainder(Current_Guess(i), TwoPi);
-            }
-            else if (Model.isJointLimited(i))
-            {
-                if (Current_Guess(i) < Model.getJointMin(i))
-                {
-                    Current_Guess(i) = Model.getJointMin(i);
-                }
-                else if (Current_Guess(i) > Model.getJointMax(i))
-                {
-                    Current_Guess(i) = Model.getJointMax(i);
-                }
-            }
-        }
-        iterations++;
-    } while (iterations<max_it);
-
-    CurrentGuessFK = Model.ForwardKinematics(Current_Guess);
-    CurrentGuessPOS = CurrentGuessFK.block<3, 1>(0, 3);
-    error = Target_Position - CurrentGuessPOS;
-    Converged = error.norm() < tol;
-
-    return Current_Guess;
+    Eigen::Matrix4d Target_Pose = Eigen::Matrix4d::Identity();
+    Target_Pose.block<3, 1>(0, 3) = Target_Position;
+    return Inverse_Kinematic(Target_Pose, Model, Converged, tol, max_it);
 }
 
 Eigen::VectorXd Inverse_Kinematic(
