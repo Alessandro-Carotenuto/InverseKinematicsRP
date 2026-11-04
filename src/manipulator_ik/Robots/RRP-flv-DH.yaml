@@ -28,5 +28,5 @@ robot:
       theta: 0.0
       d: 0.0
       limited: true
-      lower: -1.0
+      lower: 0.0
       upper: 1.0

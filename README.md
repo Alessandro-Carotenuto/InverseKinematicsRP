@@ -22,16 +22,12 @@ Per ogni robot sono disponibili entrambe le descrizioni: parametri DH in YAML e 
 | Robot | Giunti | Piano |
 |---|---|---|
 | 2R-Planar | R-R | XY |
-| 4R-Planar | R-R-R-R | XY |
-| PR-Planar | P-R | XY |
-| PRR-Planar | P-R-R | XY |
-| PPR-Planar | P-P-R | XY |
-| 3P-Planar | P-P-P | XY |
-| RPR-Planar | R-P-R | XY |
 | 3R-Planar | R-R-R | XY |
+| SCARA | R-R-P-R | XY + Z |
 | RRP-flv | R-R-P | spaziale |
+| 6doF-flv | R-R-R-R-P-R (5R1P) | spaziale |
 
-I file sono in src/manipulator_ik/Robots e si selezionano passando al nodo il nome del robot e il suffisso -DH o -URDF, senza estensione. I modelli con suffisso Planar sono nel piano XY; RRP-flv è spaziale. I giunti R hanno limiti d’esempio [-π, π]; i giunti P hanno limiti d’esempio [-1, 1] metri. I limiti sono dichiarati nei modelli, ma la IK non vincola ogni aggiornamento entro questi intervalli.
+I file sono in src/manipulator_ik/Robots e si selezionano passando al nodo il nome del robot e il suffisso -DH o -URDF, senza estensione. I modelli Planar lavorano nel piano XY; SCARA lavora in XY con corsa verticale verso il basso; RRP-flv e 6doF-flv sono spaziali. In 6doF-flv, J1 ruota attorno a Z, J2 e J3 fanno il pitch, J4 ruota attorno all’asse del link precedente, J5 estende il telescopio di 0–0.25 m e J6 inclina il tool. In SCARA, J1 e J2 ruotano attorno a Z, J3 estende verso il basso la colonna telescopica da 0 a 0.25 m e J4 ruota attorno a Z. Il TCP (tool0) si trova alla punta dello stelo, con quota Z tra 0.25 e 0.50 m. Ogni modello dichiara i limiti dei propri giunti; l’IK applica i limiti dichiarati ai giunti prismatici.
 
 ## Build e avvio
 
@@ -79,7 +75,7 @@ Ogni chiamata rilegge il file. Dopo aver modificato le coordinate, richiamare il
 
 ## Visualizzazione con RViz
 
-Gli URDF attuali descrivono link e giunti, ma non contengono geometrie visuali. Aggiungi una geometria, ad esempio un cilindro o un box, a ciascun link che vuoi vedere. Senza questi elementi, RViz può mostrare i frame TF ma non il corpo del robot.
+Gli URDF contengono geometrie visuali: base ed end effector sono arancioni, i link intermedi bianchi e gli steli prismatici mobili blu. Le varianti DH in YAML non contengono geometrie visuali.
 
 Se i pacchetti non sono installati:
 ~~~bash
@@ -109,10 +105,10 @@ rviz2
 
 In RViz imposta Fixed Frame su base_link e aggiungi il display RobotModel. La GUI pubblica stati manuali dei giunti; robot_state_publisher li converte in trasformazioni TF.
 
-Questa prova manuale non mostra la configurazione calcolata dal service. Il nodo attuale stampa i valori nei log, ma non pubblica /joint_states. Per animare il robot dopo EE_pos_update, il nodo deve pubblicare sensor_msgs/msg/JointState con i nomi e le posizioni contenute in joint_configuration; poi robot_state_publisher aggiorna TF e RViz mostra la nuova posa. In questa modalità non avviare anche joint_state_publisher_gui.
+Il nodo manipulator_ik_node pubblica la configurazione su /joint_states quando l’IK converge. Con robot_state_publisher attivo e la descrizione URDF aggiornata, RViz segue i nuovi stati. Usa joint_state_publisher_gui solo per la prova manuale, non insieme al publisher del nodo.
 
 ## Limiti attuali e lavoro rimanente
 
 - La IK risolve la posizione dell’end-effector, non l’orientamento.
-- Il nodo stampa la configurazione, ma non pubblica `sensor_msgs/msg/JointState`.
+- Il nodo pubblica la configurazione su /joint_states quando l’IK converge.
 - Restano da creare un launch file e una configurazione RViz per avviare i nodi insieme.

@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<robot name="SCARA-URDF">
+  <material name="white">
+    <color rgba="1 1 1 1"/>
+  </material>
+  <material name="orange">
+    <color rgba="1 0.45 0 1"/>
+  </material>
+  <material name="blue">
+    <color rgba="0.35 0.55 0.75 1"/>
+  </material>
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.5" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.25 0.25 1.0"/>
+      </geometry>
+      <material name="orange"/>
+    </visual>
+  </link>
+
+  <joint name="joint_1" type="revolute">
+    <parent link="base_link"/>
+    <child link="link_1"/>
+    <origin xyz="0 0 1.0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="10.0" velocity="1.0"/>
+  </joint>
+  <link name="link_1">
+    <visual>
+      <origin xyz="0.5 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="1.0 0.08 0.08"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+
+  <joint name="joint_2" type="revolute">
+    <parent link="link_1"/>
+    <child link="link_2"/>
+    <origin xyz="1.0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="10.0" velocity="1.0"/>
+  </joint>
+  <link name="link_2">
+    <visual>
+      <origin xyz="0.5 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="1.0 0.08 0.08"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <visual>
+      <origin xyz="1.0 0 -0.125" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.06" length="0.25"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+
+  <joint name="joint_3" type="prismatic">
+    <parent link="link_2"/>
+    <child link="link_3"/>
+    <origin xyz="1.0 0 0" rpy="3.141592653589793 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0.0" upper="0.25" effort="10.0" velocity="1.0"/>
+  </joint>
+  <link name="link_3">
+    <visual>
+      <origin xyz="0 0 0.125" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.04" length="0.25"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+  </link>
+
+  <joint name="joint_4" type="revolute">
+    <parent link="link_3"/>
+    <child link="link_4"/>
+    <origin xyz="0 0 0.25" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="10.0" velocity="1.0"/>
+  </joint>
+  <link name="link_4">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.14 0.14 0.05"/>
+      </geometry>
+      <material name="orange"/>
+    </visual>
+  </link>
+
+  <joint name="tool0_fixed" type="fixed">
+    <parent link="link_4"/>
+    <child link="tool0"/>
+    <origin xyz="0 0 0.25" rpy="0 0 0"/>
+  </joint>
+  <link name="tool0">
+    <visual>
+      <origin xyz="0 0 -0.125" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.035" length="0.25"/>
+      </geometry>
+      <material name="orange"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.07"/>
+      </geometry>
+      <material name="orange"/>
+    </visual>
+  </link>
+</robot>

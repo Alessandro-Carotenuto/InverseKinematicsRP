@@ -73,9 +73,9 @@ Il Jacobiano lineare è calcolato con differenze finite: si calcola la posizione
 
 La pseudoinversa è costruita dalla decomposizione SVD di Eigen, azzerando i valori singolari sotto la soglia specificata. La IK usa l’aggiornamento iterativo `q ← q + J⁺ e`, dove `e` è la differenza tra posizione target e posizione corrente.
 
-Il guess iniziale è zero per i giunti senza limiti; per i giunti limitati è il punto medio tra minimo e massimo dichiarati. Dopo ogni aggiornamento, le coordinate revolute vengono riportate con `std::remainder(q, 2π)` nell’intervallo angolare canonico `[-π, π]`; le coordinate prismatiche non vengono alterate.
+Il guess iniziale è zero per i giunti senza limiti; per i giunti limitati è il punto medio tra minimo e massimo dichiarati. Dopo ogni aggiornamento, gli angoli revolute sono normalizzati in [-π, π]; le coordinate prismatiche limitate vengono vincolate ai limiti dichiarati.
 
-La flag `Converged` è determinata dall’errore finale sulla posizione rispetto alla tolleranza. La routine non risolve l’orientamento dell’end-effector e non vincola gli aggiornamenti ai limiti meccanici del modello. La normalizzazione periodica degli angoli non equivale a imporre limiti reali.
+La flag Converged è determinata dall’errore finale sulla posizione rispetto alla tolleranza. La routine non risolve l’orientamento dell’end-effector; i limiti prismatici dichiarati sono applicati durante gli aggiornamenti.
 
 ## Nodo ROS 2
 
@@ -86,9 +86,9 @@ Il service `EE_pos_update` usa `std_srvs/srv/Trigger`, quindi non riceve coordin
 1. legge `position.x`, `position.y` e `position.z` da `src/manipulator_ik/src/targetPosition.yaml`;
 2. calcola la IK sul modello caricato all’avvio;
 3. imposta `success` e `message` nella risposta del service;
-4. stampa convergenza e configurazione articolare nei log.
+4. stampa convergenza e configurazione articolare nei log; se l’IK converge, pubblica anche sensor_msgs/msg/JointState su /joint_states.
 
-Il file YAML viene riletto a ogni chiamata: si può cambiare il target senza riavviare il nodo. Il nodo attuale non pubblica la configurazione su un topic e non pubblica `JointState`.
+Il file YAML viene riletto a ogni chiamata: si può cambiare il target senza riavviare il nodo. Se l’IK converge, il nodo pubblica la configurazione su /joint_states.
 
 ### Build e uso
 
@@ -125,7 +125,7 @@ URDF con geometrie visuali + /joint_states
           RViz RobotModel
 ~~~
 
-Gli URDF in Robots contengono link e joint, ma i link sono privi di elementi visual. Aggiungere una sezione visual con una geometria (box, cylinder o mesh) a ogni link che deve apparire. RViz usa la descrizione URDF e le trasformazioni TF per disegnare i link.
+Gli URDF in Robots includono geometrie visuali. Base ed end effector sono arancioni, i link intermedi bianchi e gli steli prismatici mobili blu. RViz usa la descrizione URDF e le trasformazioni TF per disegnare il robot.
 
 Per una prova manuale:
 
@@ -150,7 +150,7 @@ source /opt/ros/jazzy/setup.bash
 rviz2
 ~~~
 
-Il service EE_pos_update oggi calcola la configurazione e la stampa soltanto nei log. Per visualizzare quella configurazione, ManipulatorIKNode deve pubblicare un sensor_msgs/msg/JointState su /joint_states, compilato con i nomi dei giunti e joint_configuration. Aggiungere sensor_msgs come dipendenza in package.xml e CMakeLists.txt. robot_state_publisher usa il messaggio per aggiornare TF; RViz aggiorna quindi il display RobotModel. Non usare insieme questo publisher e joint_state_publisher_gui, che pubblicherebbe altri valori sullo stesso topic.
+Il service EE_pos_update pubblica la configurazione convergente su /joint_states. robot_state_publisher usa il messaggio per aggiornare TF e RViz aggiorna il display RobotModel. Non usare insieme joint_state_publisher_gui, che pubblicherebbe altri valori sullo stesso topic.
 
 La sequenza può poi essere raccolta in un launch file con i parametri robot_description, il nodo IK, robot_state_publisher e RViz.
 
@@ -161,15 +161,11 @@ Ogni robot è disponibile come file YAML DH e come URDF nella directory src/mani
 | Robot | Sequenza | Piano |
 |---|---|---|
 | 2R-Planar | R-R | XY |
-| 4R-Planar | R-R-R-R | XY |
-| PR-Planar | P-R | XY |
-| PRR-Planar | P-R-R | XY |
-| PPR-Planar | P-P-R | XY |
-| 3P-Planar | P-P-P | XY |
-| RPR-Planar | R-P-R | XY |
 | 3R-Planar | R-R-R | XY |
+| SCARA | R-R-P-R | XY + Z |
 | RRP-flv | R-R-P | spaziale |
+| 6doF-flv | R-R-R-R-P-R (5R1P) | spaziale |
 
-I giunti revolute hanno limiti d’esempio [-π, π]; i prismatici [-1, 1] metri. La IK corrente dichiara ma non applica i limiti come vincoli durante ogni iterazione. I modelli con suffisso Planar restano nel piano XY e hanno z dell end-effector pari a zero. RRP-flv è spaziale.
+I giunti revolute hanno limiti d’esempio [-π, π]. I limiti prismatici sono specifici di ciascun file; in 6doF-flv il quinto giunto ha una corsa da 0 a 0.25 m. La IK limita le coordinate prismatiche ai limiti dichiarati. SCARA ha due assi revolute verticali; il giunto prismatico J3 ha corsa verso il basso 0–0.25 m e J4 ruota attorno a Z; il TCP (tool0) si trova alla punta dello stelo, con quota Z tra 0.25 e 0.50 m. RRP-flv e 6doF-flv sono modelli spaziali.
 
-Restano da aggiungere le geometrie visuali agli URDF e la pubblicazione di JointState dal nodo IK, con una configurazione RViz e un launch file per avviare i nodi insieme.
+Restano da aggiungere una configurazione RViz e un launch file per avviare i nodi insieme.

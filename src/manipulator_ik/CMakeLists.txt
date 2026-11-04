@@ -9,6 +9,8 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(rcl_interfaces REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(urdfdom REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
@@ -25,7 +27,7 @@ add_library(kinematics
 add_executable(manipulator_ik_node
   src/manipulator_ik_node.cpp
 )
-ament_target_dependencies(manipulator_ik_node rclcpp std_srvs)
+ament_target_dependencies(manipulator_ik_node rclcpp rcl_interfaces std_srvs sensor_msgs)
 target_link_libraries(manipulator_ik_node kinematics yaml-cpp::yaml-cpp)
 target_include_directories(kinematics PUBLIC include)
 target_compile_features(manipulator_ik_node PRIVATE cxx_std_17)

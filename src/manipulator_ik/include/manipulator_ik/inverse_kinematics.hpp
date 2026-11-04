@@ -8,6 +8,12 @@
 Eigen::MatrixXd Pseudo_Inverse(Eigen::MatrixXd& Jacobian, double tolerance = 1e-9);
 void ApplyJointConfiguration(std::vector<DHMatrix>& DHList, const Eigen::VectorXd& q);
 
+Eigen::VectorXd NaiveSeedGeneratorForIK(
+    const Eigen::Vector3d& Target_Position,
+    const KinematicModel& Model,
+    const double tol=1e-4,
+    const int max_sweeps=100);
+
 Eigen::VectorXd Inverse_Kinematic(
     const Eigen::Vector3d& Target_Position,
     const KinematicModel& Model,
